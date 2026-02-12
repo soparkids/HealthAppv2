@@ -1,0 +1,167 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  PATIENT
+  PROVIDER
+  ADMIN
+}
+
+enum RecordType {
+  MRI
+  XRAY
+  ULTRASOUND
+  CT_SCAN
+  OTHER
+}
+
+enum Permission {
+  VIEW
+  DOWNLOAD
+}
+
+enum FollowUpStatus {
+  PENDING
+  SCHEDULED
+  COMPLETED
+  OVERDUE
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String?
+  role      Role     @default(PATIENT)
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  medicalRecords MedicalRecord[]
+  sharedRecords  SharedRecord[]
+  followUps      FollowUp[]
+  notifications  Notification[]
+  provider       Provider?
+  familyMembers  FamilyMember[] @relation("UserFamilyMembers")
+  memberOf       FamilyMember[] @relation("MemberOfFamily")
+}
+
+model MedicalRecord {
+  id                 String     @id @default(cuid())
+  userId             String
+  title              String
+  type               RecordType @default(OTHER)
+  bodyPart           String?
+  facility           String?
+  referringPhysician String?
+  recordDate         DateTime
+  fileUrl            String?
+  thumbnailUrl       String?
+  fileType           String?
+  fileSize           Int?
+  notes              String?
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  report        Report?
+  sharedRecords SharedRecord[]
+  followUps     FollowUp[]
+
+  @@index([userId])
+}
+
+model Report {
+  id              String @id @default(cuid())
+  medicalRecordId String @unique
+  content         String
+  summary         String?
+  keyFindings     String?
+  createdAt       DateTime @default(now())
+
+  medicalRecord MedicalRecord @relation(fields: [medicalRecordId], references: [id], onDelete: Cascade)
+}
+
+model SharedRecord {
+  id              String     @id @default(cuid())
+  medicalRecordId String
+  sharedByUserId  String
+  sharedWithEmail String
+  token           String     @unique @default(cuid())
+  permission      Permission @default(VIEW)
+  expiresAt       DateTime?
+  revokedAt       DateTime?
+  createdAt       DateTime   @default(now())
+
+  medicalRecord MedicalRecord @relation(fields: [medicalRecordId], references: [id], onDelete: Cascade)
+  sharedBy      User          @relation(fields: [sharedByUserId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([sharedWithEmail])
+}
+
+model FamilyMember {
+  id           String   @id @default(cuid())
+  userId       String
+  memberUserId String
+  relationship String
+  consentGiven Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  user   User @relation("UserFamilyMembers", fields: [userId], references: [id], onDelete: Cascade)
+  member User @relation("MemberOfFamily", fields: [memberUserId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, memberUserId])
+}
+
+model FollowUp {
+  id              String         @id @default(cuid())
+  userId          String
+  medicalRecordId String?
+  recommendation  String
+  status          FollowUpStatus @default(PENDING)
+  dueDate         DateTime?
+  notes           String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  medicalRecord MedicalRecord? @relation(fields: [medicalRecordId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([status])
+}
+
+model Provider {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  specialty       String?
+  licenseNumber   String?
+  facilityName    String?
+  facilityAddress String?
+  phone           String?
+  bio             String?
+  createdAt       DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+}
