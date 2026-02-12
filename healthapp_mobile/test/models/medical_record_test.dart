@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:healthapp_mobile/models/medical_record.dart';
-import 'package:healthapp_mobile/models/report.dart';
 
 void main() {
   group('MedicalRecord', () {
