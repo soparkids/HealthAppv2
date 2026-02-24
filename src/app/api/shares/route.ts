@@ -2,10 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withAuth } from "@/lib/org-auth";
 import { logAudit, getClientIp } from "@/lib/audit";
+import { requireFeature } from "@/lib/features";
 
 export async function GET(request: NextRequest) {
   const auth = await withAuth();
   if (auth instanceof NextResponse) return auth;
+
+  const orgId = request.headers.get("x-organization-id");
+  if (orgId) {
+    const featureCheck = await requireFeature(orgId, "report_sharing");
+    if (featureCheck) return featureCheck;
+  }
 
   const recordId = request.nextUrl.searchParams.get("recordId");
 
@@ -23,6 +30,12 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const auth = await withAuth();
   if (auth instanceof NextResponse) return auth;
+
+  const orgId = request.headers.get("x-organization-id");
+  if (orgId) {
+    const featureCheck = await requireFeature(orgId, "report_sharing");
+    if (featureCheck) return featureCheck;
+  }
 
   const body = await request.json();
   const { medicalRecordId, sharedWithEmail, permission, expiresAt } = body;

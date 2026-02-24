@@ -2,10 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withAuth } from "@/lib/org-auth";
 import { logAudit, getClientIp } from "@/lib/audit";
+import { requireFeature } from "@/lib/features";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const auth = await withAuth();
   if (auth instanceof NextResponse) return auth;
+
+  const orgId = request.headers.get("x-organization-id");
+  if (orgId) {
+    const featureCheck = await requireFeature(orgId, "follow_ups");
+    if (featureCheck) return featureCheck;
+  }
 
   const followUps = await prisma.followUp.findMany({
     where: { userId: auth.userId },
@@ -24,6 +31,12 @@ export async function POST(request: NextRequest) {
   const auth = await withAuth();
   if (auth instanceof NextResponse) return auth;
 
+  const organizationId = request.headers.get("x-organization-id");
+  if (organizationId) {
+    const featureCheck = await requireFeature(organizationId, "follow_ups");
+    if (featureCheck) return featureCheck;
+  }
+
   const body = await request.json();
   const { recommendation, medicalRecordId, dueDate, notes } = body;
 
@@ -33,8 +46,6 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   }
-
-  const organizationId = request.headers.get("x-organization-id");
 
   const followUp = await prisma.followUp.create({
     data: {

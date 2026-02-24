@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createOrganizationSchema } from "@/lib/validations/organization";
 import { logAudit, getClientIp } from "@/lib/audit";
+import { seedDefaultFeatures } from "@/lib/features";
 
 // GET: List organizations the current user belongs to
 export async function GET() {
@@ -77,6 +78,9 @@ export async function POST(request: Request) {
       _count: { select: { members: true } },
     },
   });
+
+  // Seed default features for the new organization
+  await seedDefaultFeatures(organization.id, session.user.id);
 
   await logAudit({
     userId: session.user.id,
