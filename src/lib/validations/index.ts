@@ -42,3 +42,22 @@ export type MedicalRecordInput = z.infer<typeof medicalRecordSchema>;
 export type ShareRecordInput = z.infer<typeof shareRecordSchema>;
 export type FamilyMemberInput = z.infer<typeof familyMemberSchema>;
 export type FollowUpInput = z.infer<typeof followUpSchema>;
+
+export {
+  createPatientSchema,
+  updatePatientSchema,
+  createAppointmentSchema,
+  updateAppointmentStatusSchema,
+  createEyeConsultationSchema,
+  createMedicalHistorySchema,
+  createLabResultSchema,
+  updatePatientPrefixSchema,
+  type CreatePatientInput,
+  type UpdatePatientInput,
+  type CreateAppointmentInput,
+  type UpdateAppointmentStatusInput,
+  type CreateEyeConsultationInput,
+  type CreateMedicalHistoryInput,
+  type CreateLabResultInput,
+  type UpdatePatientPrefixInput,
+} from "./clinical";
