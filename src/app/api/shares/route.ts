@@ -1,17 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { withAuth } from "@/lib/org-auth";
+import { logAudit, getClientIp } from "@/lib/audit";
 
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = await withAuth();
+  if (auth instanceof NextResponse) return auth;
 
   const recordId = request.nextUrl.searchParams.get("recordId");
 
-  const where: Record<string, unknown> = { sharedByUserId: session.user.id };
+  const where: Record<string, unknown> = { sharedByUserId: auth.userId };
   if (recordId) where.medicalRecordId = recordId;
 
   const shares = await prisma.sharedRecord.findMany({
@@ -23,10 +21,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = await withAuth();
+  if (auth instanceof NextResponse) return auth;
 
   const body = await request.json();
   const { medicalRecordId, sharedWithEmail, permission, expiresAt } = body;
@@ -39,7 +35,7 @@ export async function POST(request: NextRequest) {
   }
 
   const record = await prisma.medicalRecord.findFirst({
-    where: { id: medicalRecordId, userId: session.user.id },
+    where: { id: medicalRecordId, userId: auth.userId },
   });
 
   if (!record) {
@@ -49,11 +45,21 @@ export async function POST(request: NextRequest) {
   const share = await prisma.sharedRecord.create({
     data: {
       medicalRecordId,
-      sharedByUserId: session.user.id,
+      sharedByUserId: auth.userId,
       sharedWithEmail,
       permission: permission || "VIEW",
       expiresAt: expiresAt ? new Date(expiresAt) : null,
     },
+  });
+
+  await logAudit({
+    userId: auth.userId,
+    organizationId: record.organizationId || undefined,
+    action: "SHARE_RECORD",
+    entityType: "sharedRecord",
+    entityId: share.id,
+    details: `Shared with ${sharedWithEmail}`,
+    ipAddress: getClientIp(request),
   });
 
   return NextResponse.json(share, { status: 201 });

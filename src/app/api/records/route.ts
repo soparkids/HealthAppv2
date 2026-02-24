@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { withAuth } from "@/lib/org-auth";
+import { logAudit, getClientIp } from "@/lib/audit";
 
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = await withAuth();
+  if (auth instanceof NextResponse) return auth;
 
   const { searchParams } = new URL(request.url);
   const type = searchParams.get("type");
@@ -15,7 +13,7 @@ export async function GET(request: NextRequest) {
   const page = parseInt(searchParams.get("page") || "1");
   const limit = parseInt(searchParams.get("limit") || "10");
 
-  const where: Record<string, unknown> = { userId: session.user.id };
+  const where: Record<string, unknown> = { userId: auth.userId };
 
   if (type && type !== "All") {
     where.type = type;
@@ -52,10 +50,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = await withAuth();
+  if (auth instanceof NextResponse) return auth;
 
   const body = await request.json();
   const { title, type, bodyPart, facility, referringPhysician, recordDate, notes, fileUrl, fileType, fileSize } = body;
@@ -67,9 +63,12 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const organizationId = request.headers.get("x-organization-id");
+
   const record = await prisma.medicalRecord.create({
     data: {
-      userId: session.user.id,
+      userId: auth.userId,
+      organizationId: organizationId || undefined,
       title,
       type: type || "OTHER",
       bodyPart,
@@ -81,6 +80,15 @@ export async function POST(request: NextRequest) {
       fileType,
       fileSize,
     },
+  });
+
+  await logAudit({
+    userId: auth.userId,
+    organizationId: organizationId || undefined,
+    action: "CREATE_RECORD",
+    entityType: "medicalRecord",
+    entityId: record.id,
+    ipAddress: getClientIp(request),
   });
 
   return NextResponse.json(record, { status: 201 });

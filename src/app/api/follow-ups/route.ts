@@ -1,16 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { withAuth } from "@/lib/org-auth";
+import { logAudit, getClientIp } from "@/lib/audit";
 
 export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = await withAuth();
+  if (auth instanceof NextResponse) return auth;
 
   const followUps = await prisma.followUp.findMany({
-    where: { userId: session.user.id },
+    where: { userId: auth.userId },
     include: {
       medicalRecord: {
         select: { id: true, title: true, type: true },
@@ -23,10 +21,8 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = await withAuth();
+  if (auth instanceof NextResponse) return auth;
 
   const body = await request.json();
   const { recommendation, medicalRecordId, dueDate, notes } = body;
@@ -38,9 +34,12 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const organizationId = request.headers.get("x-organization-id");
+
   const followUp = await prisma.followUp.create({
     data: {
-      userId: session.user.id,
+      userId: auth.userId,
+      organizationId: organizationId || undefined,
       recommendation,
       medicalRecordId: medicalRecordId || null,
       dueDate: dueDate ? new Date(dueDate) : null,
@@ -51,6 +50,15 @@ export async function POST(request: NextRequest) {
         select: { id: true, title: true, type: true },
       },
     },
+  });
+
+  await logAudit({
+    userId: auth.userId,
+    organizationId: organizationId || undefined,
+    action: "CREATE_FOLLOW_UP",
+    entityType: "followUp",
+    entityId: followUp.id,
+    ipAddress: getClientIp(request),
   });
 
   return NextResponse.json(followUp, { status: 201 });

@@ -1,21 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { withAuth } from "@/lib/org-auth";
+import { logAudit, getClientIp } from "@/lib/audit";
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = await withAuth();
+  if (auth instanceof NextResponse) return auth;
 
   const { id } = await params;
 
   const record = await prisma.medicalRecord.findFirst({
-    where: { id, userId: session.user.id },
+    where: { id, userId: auth.userId },
     include: {
       report: true,
       sharedRecords: true,
@@ -34,15 +32,13 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = await withAuth();
+  if (auth instanceof NextResponse) return auth;
 
   const { id } = await params;
 
   const existing = await prisma.medicalRecord.findFirst({
-    where: { id, userId: session.user.id },
+    where: { id, userId: auth.userId },
   });
 
   if (!existing) {
@@ -65,6 +61,15 @@ export async function PUT(
     },
   });
 
+  await logAudit({
+    userId: auth.userId,
+    organizationId: existing.organizationId || undefined,
+    action: "UPDATE_RECORD",
+    entityType: "medicalRecord",
+    entityId: id,
+    ipAddress: getClientIp(request),
+  });
+
   return NextResponse.json(record);
 }
 
@@ -72,15 +77,13 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = await withAuth();
+  if (auth instanceof NextResponse) return auth;
 
   const { id } = await params;
 
   const existing = await prisma.medicalRecord.findFirst({
-    where: { id, userId: session.user.id },
+    where: { id, userId: auth.userId },
   });
 
   if (!existing) {
@@ -88,6 +91,15 @@ export async function DELETE(
   }
 
   await prisma.medicalRecord.delete({ where: { id } });
+
+  await logAudit({
+    userId: auth.userId,
+    organizationId: existing.organizationId || undefined,
+    action: "DELETE_RECORD",
+    entityType: "medicalRecord",
+    entityId: id,
+    ipAddress: getClientIp(request),
+  });
 
   return NextResponse.json({ success: true });
 }
