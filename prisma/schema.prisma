@@ -41,6 +41,19 @@ enum OrgRole {
   RECEPTIONIST
 }
 
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
@@ -59,6 +72,7 @@ model User {
   familyMembers  FamilyMember[] @relation("UserFamilyMembers")
   memberOf       FamilyMember[] @relation("MemberOfFamily")
   organizations  OrganizationMember[]
+  linkedPatients Patient[]
 }
 
 model MedicalRecord {
@@ -186,19 +200,25 @@ model Notification {
 }
 
 model Organization {
-  id        String   @id @default(cuid())
-  name      String
-  slug      String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                  String   @id @default(cuid())
+  name                String
+  slug                String   @unique
+  patientNumberPrefix String   @default("P")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
-  members        OrganizationMember[]
-  features       OrganizationFeature[]
-  medicalRecords MedicalRecord[]
-  followUps      FollowUp[]
-  notifications  Notification[]
-  auditLogs      AuditLog[]
-  providers      Provider[]
+  members          OrganizationMember[]
+  features         OrganizationFeature[]
+  medicalRecords   MedicalRecord[]
+  followUps        FollowUp[]
+  notifications    Notification[]
+  auditLogs        AuditLog[]
+  providers        Provider[]
+  patients         Patient[]
+  appointments     Appointment[]
+  eyeConsultations EyeConsultation[]
+  medicalHistories MedicalHistory[]
+  labResults       LabResult[]
 }
 
 model OrganizationFeature {
@@ -251,4 +271,138 @@ model AuditLog {
   @@index([userId])
   @@index([action])
   @@index([createdAt])
+}
+
+model Patient {
+  id                String    @id @default(cuid())
+  organizationId    String
+  linkedUserId      String?
+  patientNumber     String
+  firstName         String
+  lastName          String
+  dateOfBirth       DateTime
+  gender            Gender
+  phone             String?
+  email             String?
+  address           String?
+  emergencyContact  String?
+  emergencyPhone    String?
+  allergies         String?
+  medicalConditions String?
+  medications       String?
+  notes             String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  organization     Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  linkedUser       User?              @relation(fields: [linkedUserId], references: [id], onDelete: SetNull)
+  appointments     Appointment[]
+  eyeConsultations EyeConsultation[]
+  medicalHistories MedicalHistory[]
+  labResults       LabResult[]
+
+  @@unique([organizationId, patientNumber])
+  @@index([organizationId])
+  @@index([linkedUserId])
+  @@index([lastName, firstName])
+}
+
+model Appointment {
+  id              String            @id @default(cuid())
+  organizationId  String
+  patientId       String
+  appointmentDate DateTime
+  appointmentTime String
+  doctor          String
+  reason          String?
+  status          AppointmentStatus @default(SCHEDULED)
+  notes           String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  patient      Patient      @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([patientId])
+  @@index([appointmentDate])
+  @@index([status])
+}
+
+model EyeConsultation {
+  id               String   @id @default(cuid())
+  organizationId   String
+  patientId        String
+  consultationDate DateTime
+  doctor           String
+  chiefComplaint   String?
+  reMovement       String?
+  leMovement       String?
+  reLids           String?
+  leLids           String?
+  reGlobe          String?
+  leGlobe          String?
+  reConjunctiva    String?
+  leConjunctiva    String?
+  reCornea         String?
+  leCornea         String?
+  reAc             String?
+  leAc             String?
+  rePupil          String?
+  lePupil          String?
+  reIris           String?
+  leIris           String?
+  reLens           String?
+  leLens           String?
+  reVrr            String?
+  leVrr            String?
+  reVcdr           String?
+  leVcdr           String?
+  reOthers         String?
+  leOthers         String?
+  diagnosis        String?
+  plan             String?
+  createdAt        DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  patient      Patient      @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([patientId])
+  @@index([consultationDate])
+}
+
+model MedicalHistory {
+  id                String   @id @default(cuid())
+  organizationId    String
+  patientId         String
+  medicalConditions String?
+  medications       String?
+  notes             String?
+  createdAt         DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  patient      Patient      @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([patientId])
+  @@index([createdAt])
+}
+
+model LabResult {
+  id             String   @id @default(cuid())
+  organizationId String
+  patientId      String
+  testName       String
+  resultValue    String
+  datePerformed  DateTime
+  notes          String?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  patient      Patient      @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([patientId])
+  @@index([datePerformed])
 }

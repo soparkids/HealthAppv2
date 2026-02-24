@@ -14,6 +14,8 @@ export const FEATURE_KEYS = [
   "report_sharing",
   "follow_ups",
   "provider_portal",
+  "lab_results",
+  "medical_history",
 ] as const;
 
 export type FeatureKey = (typeof FEATURE_KEYS)[number];
@@ -28,6 +30,8 @@ export const FEATURE_LABELS: Record<FeatureKey, string> = {
   report_sharing: "Report Sharing",
   follow_ups: "Follow-Ups",
   provider_portal: "Provider Portal",
+  lab_results: "Lab Results",
+  medical_history: "Medical History",
 };
 
 /** Features enabled by default for new organizations */
