@@ -1,21 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { withAuth } from "@/lib/org-auth";
+import { logAudit, getClientIp } from "@/lib/audit";
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = await withAuth();
+  if (auth instanceof NextResponse) return auth;
 
   const { id } = await params;
 
   const share = await prisma.sharedRecord.findFirst({
-    where: { id, sharedByUserId: session.user.id },
+    where: { id, sharedByUserId: auth.userId },
+    include: { medicalRecord: { select: { organizationId: true } } },
   });
 
   if (!share) {
@@ -25,6 +24,15 @@ export async function DELETE(
   await prisma.sharedRecord.update({
     where: { id },
     data: { revokedAt: new Date() },
+  });
+
+  await logAudit({
+    userId: auth.userId,
+    organizationId: share.medicalRecord.organizationId || undefined,
+    action: "REVOKE_SHARE",
+    entityType: "sharedRecord",
+    entityId: id,
+    ipAddress: getClientIp(request),
   });
 
   return NextResponse.json({ success: true });
