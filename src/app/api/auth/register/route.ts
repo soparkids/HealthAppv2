@@ -2,9 +2,20 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { registerSchema } from "@/lib/validations/auth";
+import { checkRateLimit, AUTH_RATE_LIMIT } from "@/lib/rate-limit";
+import { logAudit, getClientIp } from "@/lib/audit";
 
 export async function POST(request: Request) {
   try {
+    const ip = getClientIp(request);
+    const rateCheck = checkRateLimit(`register:${ip}`, AUTH_RATE_LIMIT);
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { error: "Too many registration attempts. Try again later." },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
     const parsed = registerSchema.safeParse(body);
 
@@ -44,6 +55,15 @@ export async function POST(request: Request) {
         role: true,
         createdAt: true,
       },
+    });
+
+    await logAudit({
+      userId: user.id,
+      action: "REGISTER",
+      entityType: "user",
+      entityId: user.id,
+      details: `Registered as ${role}`,
+      ipAddress: ip,
     });
 
     return NextResponse.json(

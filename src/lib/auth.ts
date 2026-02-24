@@ -3,6 +3,8 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { loginSchema } from "@/lib/validations/auth";
+import { checkRateLimit, clearRateLimit, AUTH_RATE_LIMIT } from "@/lib/rate-limit";
+import { logAudit } from "@/lib/audit";
 
 export const authOptions: NextAuthOptions = {
   session: {
@@ -27,6 +29,12 @@ export const authOptions: NextAuthOptions = {
 
         const { email, password } = parsed.data;
 
+        const rateLimitKey = `login:${email}`;
+        const rateCheck = checkRateLimit(rateLimitKey, AUTH_RATE_LIMIT);
+        if (!rateCheck.allowed) {
+          throw new Error("Too many login attempts. Try again later.");
+        }
+
         const user = await prisma.user.findUnique({
           where: { email },
         });
@@ -37,8 +45,19 @@ export const authOptions: NextAuthOptions = {
 
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
+          await logAudit({
+            action: "LOGIN",
+            details: `Failed login attempt for ${email}`,
+          });
           return null;
         }
+
+        clearRateLimit(rateLimitKey);
+        await logAudit({
+          userId: user.id,
+          action: "LOGIN",
+          details: `Login as ${user.role}`,
+        });
 
         return {
           id: user.id,
@@ -54,6 +73,13 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = (user as unknown as { role: string }).role;
+
+        // Set default active organization
+        const membership = await prisma.organizationMember.findFirst({
+          where: { userId: user.id },
+          orderBy: { createdAt: "asc" },
+        });
+        token.activeOrganizationId = membership?.organizationId || null;
       }
       return token;
     },
@@ -61,6 +87,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.id = token.id as string;
         session.user.role = token.role as string;
+        session.user.activeOrganizationId = token.activeOrganizationId as string | null;
       }
       return session;
     },
