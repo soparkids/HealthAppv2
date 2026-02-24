@@ -20,6 +20,9 @@ type AuditAction =
   | "ADD_ORG_MEMBER"
   | "REMOVE_ORG_MEMBER"
   | "UPDATE_ORG_MEMBER_ROLE"
+  | "ENABLE_FEATURE"
+  | "DISABLE_FEATURE"
+  | "UPDATE_FEATURE"
   | "EXPORT_DATA";
 
 interface AuditParams {

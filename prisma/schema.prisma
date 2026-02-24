@@ -193,11 +193,31 @@ model Organization {
   updatedAt DateTime @updatedAt
 
   members        OrganizationMember[]
+  features       OrganizationFeature[]
   medicalRecords MedicalRecord[]
   followUps      FollowUp[]
   notifications  Notification[]
   auditLogs      AuditLog[]
   providers      Provider[]
+}
+
+model OrganizationFeature {
+  id             String    @id @default(cuid())
+  organizationId String
+  featureKey     String
+  enabled        Boolean   @default(true)
+  enabledAt      DateTime  @default(now())
+  enabledBy      String?
+  disabledAt     DateTime?
+  metadata       String?   // JSON string for limits, config, etc.
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, featureKey])
+  @@index([organizationId])
+  @@index([featureKey])
 }
 
 model OrganizationMember {

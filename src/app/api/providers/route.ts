@@ -2,11 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { requireFeature } from "@/lib/features";
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const orgId = request.headers.get("x-organization-id");
+  if (orgId) {
+    const featureCheck = await requireFeature(orgId, "provider_portal");
+    if (featureCheck) return featureCheck;
   }
 
   const q = request.nextUrl.searchParams.get("q") || "";

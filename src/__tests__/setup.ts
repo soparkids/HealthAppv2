@@ -21,9 +21,16 @@ vi.mock("@/lib/prisma", () => ({
       findMany: vi.fn().mockResolvedValue([]),
       create: vi.fn(),
     },
+    organizationFeature: {
+      findUnique: vi.fn(),
+      findMany: vi.fn().mockResolvedValue([]),
+      create: vi.fn(),
+      upsert: vi.fn(),
+    },
     user: {
       findUnique: vi.fn(),
     },
+    $transaction: vi.fn().mockResolvedValue([]),
   },
 }));
 
