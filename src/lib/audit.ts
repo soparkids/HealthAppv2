@@ -36,7 +36,9 @@ type AuditAction =
   | "DELETE_EYE_CONSULTATION"
   | "CREATE_MEDICAL_HISTORY"
   | "CREATE_LAB_RESULT"
-  | "DELETE_LAB_RESULT";
+  | "DELETE_LAB_RESULT"
+  | "INTERPRET_LAB_RESULT"
+  | "VIEW_INTERPRETATION";
 
 interface AuditParams {
   userId?: string;

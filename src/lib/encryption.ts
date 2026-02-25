@@ -114,6 +114,14 @@ export const SENSITIVE_PATIENT_FIELDS = [
 export const SENSITIVE_LAB_RESULT_FIELDS = [
   "resultValue",
   "notes",
+  "interpretationText",
+  "recommendations",
+] as const;
+
+export const SENSITIVE_INTERPRETATION_FIELDS = [
+  "interpretation",
+  "summary",
+  "recommendations",
 ] as const;
 
 export const SENSITIVE_MEDICAL_HISTORY_FIELDS = [

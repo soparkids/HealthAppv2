@@ -69,6 +69,8 @@ export async function POST(request: Request) {
       patientId: parsed.data.patientId,
       testName: parsed.data.testName,
       resultValue: encrypt(parsed.data.resultValue),
+      unit: parsed.data.unit || undefined,
+      referenceRange: parsed.data.referenceRange || undefined,
       datePerformed: new Date(parsed.data.datePerformed),
       notes: parsed.data.notes ? encrypt(parsed.data.notes) : undefined,
     },

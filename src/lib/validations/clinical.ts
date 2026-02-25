@@ -84,9 +84,17 @@ export const createLabResultSchema = z.object({
   patientId: z.string().min(1, "Patient is required"),
   testName: z.string().min(1, "Test name is required"),
   resultValue: z.string().min(1, "Result value is required"),
+  unit: z.string().optional(),
+  referenceRange: z.string().optional(),
   datePerformed: z.string().min(1, "Date performed is required"),
   notes: z.string().optional(),
 });
+
+export const interpretLabResultSchema = z.object({
+  preferredProvider: z.enum(["openai", "anthropic", "google"]).optional(),
+});
+
+export type InterpretLabResultInput = z.infer<typeof interpretLabResultSchema>;
 
 /** Schema for updating org patient number prefix */
 export const updatePatientPrefixSchema = z.object({

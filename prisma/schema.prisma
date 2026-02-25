@@ -393,20 +393,65 @@ model MedicalHistory {
   @@index([createdAt])
 }
 
+enum InterpretationStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
 model LabResult {
   id             String   @id @default(cuid())
   organizationId String
   patientId      String
   testName       String
   resultValue    String
+  unit           String?
+  referenceRange String?
   datePerformed  DateTime
   notes          String?
   createdAt      DateTime @default(now())
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  patient      Patient      @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  // AI interpretation fields
+  interpretationStatus InterpretationStatus?
+  interpretationText   String?
+  interpretationModel  String?
+  confidence           Float?
+  riskLevel            String?  // NORMAL, LOW, MODERATE, HIGH, CRITICAL
+  recommendations      String?  // JSON array of recommended actions
+  interpretedAt        DateTime?
+  interpretedBy        String?  // userId who triggered interpretation
+
+  organization    Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  patient         Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  interpretations LabInterpretation[]
 
   @@index([organizationId])
   @@index([patientId])
   @@index([datePerformed])
+  @@index([interpretationStatus])
+}
+
+model LabInterpretation {
+  id            String               @id @default(cuid())
+  labResultId   String
+  provider      String               // openai, anthropic, google
+  model         String               // gpt-4o, claude-sonnet-4-6, gemini-2.0-flash, etc.
+  status        InterpretationStatus @default(PENDING)
+  interpretation String?             // Encrypted full interpretation text
+  summary       String?              // Encrypted brief summary
+  riskLevel     String?              // NORMAL, LOW, MODERATE, HIGH, CRITICAL
+  confidence    Float?               // 0.0 - 1.0
+  recommendations String?            // Encrypted JSON array
+  tokenUsage    Int?                 // Total tokens used
+  latencyMs     Int?                 // Response time in milliseconds
+  errorMessage  String?              // If status is FAILED
+  requestedBy   String               // userId
+  createdAt     DateTime             @default(now())
+
+  labResult LabResult @relation(fields: [labResultId], references: [id], onDelete: Cascade)
+
+  @@index([labResultId])
+  @@index([status])
+  @@index([createdAt])
 }
