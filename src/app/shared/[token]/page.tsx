@@ -107,7 +107,7 @@ export default function SharedRecordPage() {
             </div>
             <div>
               <h1 className="font-semibold text-gray-900">Shared Medical Record</h1>
-              <p className="text-xs text-gray-500">Shared via PocketHealth</p>
+              <p className="text-xs text-gray-500">Shared via NdụMed</p>
             </div>
           </div>
         </div>
