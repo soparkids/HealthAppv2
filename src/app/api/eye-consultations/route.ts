@@ -4,6 +4,7 @@ import { withOrgAuth, type OrgAuthContext } from "@/lib/org-auth";
 import { requireFeature } from "@/lib/features";
 import { logAudit, getClientIp } from "@/lib/audit";
 import { createEyeConsultationSchema } from "@/lib/validations/clinical";
+import { encrypt, decryptFields, SENSITIVE_EYE_CONSULTATION_FIELDS } from "@/lib/encryption";
 
 export async function GET(request: Request) {
   const auth = await withOrgAuth(request);
@@ -32,8 +33,10 @@ export async function GET(request: Request) {
     prisma.eyeConsultation.count({ where }),
   ]);
 
+  const decryptedConsultations = consultations.map((c) => decryptFields(c, [...SENSITIVE_EYE_CONSULTATION_FIELDS]));
+
   return NextResponse.json({
-    consultations,
+    consultations: decryptedConsultations,
     pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
   });
 }
@@ -66,7 +69,7 @@ export async function POST(request: Request) {
       patientId: parsed.data.patientId,
       consultationDate: new Date(parsed.data.consultationDate),
       doctor: parsed.data.doctor,
-      chiefComplaint: parsed.data.chiefComplaint,
+      chiefComplaint: parsed.data.chiefComplaint ? encrypt(parsed.data.chiefComplaint) : undefined,
       reMovement: parsed.data.reMovement,
       leMovement: parsed.data.leMovement,
       reLids: parsed.data.reLids,
@@ -91,8 +94,8 @@ export async function POST(request: Request) {
       leVcdr: parsed.data.leVcdr,
       reOthers: parsed.data.reOthers,
       leOthers: parsed.data.leOthers,
-      diagnosis: parsed.data.diagnosis,
-      plan: parsed.data.plan,
+      diagnosis: parsed.data.diagnosis ? encrypt(parsed.data.diagnosis) : undefined,
+      plan: parsed.data.plan ? encrypt(parsed.data.plan) : undefined,
     },
   });
 
@@ -106,5 +109,5 @@ export async function POST(request: Request) {
     ipAddress: getClientIp(request),
   });
 
-  return NextResponse.json({ consultation }, { status: 201 });
+  return NextResponse.json({ consultation: decryptFields(consultation, [...SENSITIVE_EYE_CONSULTATION_FIELDS]) }, { status: 201 });
 }

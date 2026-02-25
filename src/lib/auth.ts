@@ -53,6 +53,23 @@ export const authOptions: NextAuthOptions = {
         }
 
         clearRateLimit(rateLimitKey);
+
+        // If MFA is enabled, return user with mfaPending flag for frontend to handle
+        if (user.mfaEnabled) {
+          await logAudit({
+            userId: user.id,
+            action: "LOGIN",
+            details: "Login requires MFA verification",
+          });
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            mfaPending: true,
+          };
+        }
+
         await logAudit({
           userId: user.id,
           action: "LOGIN",
@@ -73,6 +90,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = (user as unknown as { role: string }).role;
+        token.mfaPending = (user as unknown as { mfaPending?: boolean }).mfaPending || false;
 
         // Set default active organization
         const membership = await prisma.organizationMember.findFirst({
@@ -88,6 +106,7 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id as string;
         session.user.role = token.role as string;
         session.user.activeOrganizationId = token.activeOrganizationId as string | null;
+        session.user.mfaPending = (token.mfaPending as boolean) || false;
       }
       return session;
     },
