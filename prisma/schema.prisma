@@ -55,14 +55,18 @@ enum AppointmentStatus {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  name      String?
-  role      Role     @default(PATIENT)
-  avatar    String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              String    @id @default(cuid())
+  email           String    @unique
+  password        String
+  name            String?
+  role            Role      @default(PATIENT)
+  avatar          String?
+  mfaEnabled      Boolean   @default(false)
+  mfaSecret       String?   // Encrypted TOTP secret
+  mfaBackupCodes  String?   // Encrypted JSON array of hashed backup codes
+  mfaVerifiedAt   DateTime? // When MFA was first verified/activated
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   medicalRecords MedicalRecord[]
   sharedRecords  SharedRecord[]

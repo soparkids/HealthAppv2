@@ -9,6 +9,7 @@ declare module "next-auth" {
       email?: string | null;
       image?: string | null;
       activeOrganizationId?: string | null;
+      mfaPending?: boolean;
     };
   }
 }
@@ -18,5 +19,6 @@ declare module "next-auth/jwt" {
     id: string;
     role: string;
     activeOrganizationId?: string | null;
+    mfaPending?: boolean;
   }
 }

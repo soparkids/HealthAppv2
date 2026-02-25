@@ -4,6 +4,7 @@ import { withOrgAuth, type OrgAuthContext } from "@/lib/org-auth";
 import { requireFeature } from "@/lib/features";
 import { logAudit, getClientIp } from "@/lib/audit";
 import { createMedicalHistorySchema } from "@/lib/validations/clinical";
+import { encrypt, decryptFields, SENSITIVE_MEDICAL_HISTORY_FIELDS, SENSITIVE_PATIENT_FIELDS } from "@/lib/encryption";
 
 export async function GET(request: Request) {
   const auth = await withOrgAuth(request);
@@ -33,12 +34,15 @@ export async function GET(request: Request) {
     orderBy: { createdAt: "desc" },
   });
 
+  const decryptedEntries = entries.map((e) => decryptFields(e, [...SENSITIVE_MEDICAL_HISTORY_FIELDS]));
+  const decryptedPatient = decryptFields(patient, [...SENSITIVE_PATIENT_FIELDS]);
+
   return NextResponse.json({
-    entries,
+    entries: decryptedEntries,
     currentPatient: {
-      medicalConditions: patient.medicalConditions,
-      medications: patient.medications,
-      notes: patient.notes,
+      medicalConditions: decryptedPatient.medicalConditions,
+      medications: decryptedPatient.medications,
+      notes: decryptedPatient.notes,
     },
   });
 }
@@ -65,23 +69,28 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Patient not found in this organization" }, { status: 404 });
   }
 
+  // Encrypt sensitive fields before storage
+  const encMedConditions = parsed.data.medicalConditions ? encrypt(parsed.data.medicalConditions) : undefined;
+  const encMedications = parsed.data.medications ? encrypt(parsed.data.medications) : undefined;
+  const encNotes = parsed.data.notes ? encrypt(parsed.data.notes) : undefined;
+
   // Dual-write: append to history AND update patient's current fields
   const [entry] = await prisma.$transaction([
     prisma.medicalHistory.create({
       data: {
         organizationId,
         patientId: parsed.data.patientId,
-        medicalConditions: parsed.data.medicalConditions,
-        medications: parsed.data.medications,
-        notes: parsed.data.notes,
+        medicalConditions: encMedConditions,
+        medications: encMedications,
+        notes: encNotes,
       },
     }),
     prisma.patient.update({
       where: { id: parsed.data.patientId },
       data: {
-        medicalConditions: parsed.data.medicalConditions ?? patient.medicalConditions,
-        medications: parsed.data.medications ?? patient.medications,
-        notes: parsed.data.notes ?? patient.notes,
+        medicalConditions: encMedConditions ?? patient.medicalConditions,
+        medications: encMedications ?? patient.medications,
+        notes: encNotes ?? patient.notes,
       },
     }),
   ]);
@@ -96,5 +105,5 @@ export async function POST(request: Request) {
     ipAddress: getClientIp(request),
   });
 
-  return NextResponse.json({ entry }, { status: 201 });
+  return NextResponse.json({ entry: decryptFields(entry, [...SENSITIVE_MEDICAL_HISTORY_FIELDS]) }, { status: 201 });
 }
