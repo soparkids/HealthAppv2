@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { withOrgAuth, type OrgAuthContext } from "@/lib/org-auth";
 import { logAudit, getClientIp } from "@/lib/audit";
 import { createPatientSchema } from "@/lib/validations/clinical";
+import { encryptFields, decryptFields, SENSITIVE_PATIENT_FIELDS } from "@/lib/encryption";
 
 export async function GET(request: Request) {
   const auth = await withOrgAuth(request);
@@ -36,8 +37,12 @@ export async function GET(request: Request) {
     prisma.patient.count({ where }),
   ]);
 
+  const decryptedPatients = patients.map((p) =>
+    decryptFields(p, [...SENSITIVE_PATIENT_FIELDS])
+  );
+
   return NextResponse.json({
-    patients,
+    patients: decryptedPatients,
     pagination: {
       page,
       limit,
@@ -79,6 +84,19 @@ export async function POST(request: Request) {
   }
   const patientNumber = `${prefix}${String(nextNum).padStart(4, "0")}`;
 
+  // Encrypt sensitive fields before storage
+  const encryptedData = encryptFields(
+    {
+      emergencyContact: parsed.data.emergencyContact,
+      emergencyPhone: parsed.data.emergencyPhone,
+      allergies: parsed.data.allergies,
+      medicalConditions: parsed.data.medicalConditions,
+      medications: parsed.data.medications,
+      notes: parsed.data.notes,
+    },
+    [...SENSITIVE_PATIENT_FIELDS]
+  );
+
   const patient = await prisma.patient.create({
     data: {
       organizationId,
@@ -90,24 +108,19 @@ export async function POST(request: Request) {
       phone: parsed.data.phone,
       email: parsed.data.email,
       address: parsed.data.address,
-      emergencyContact: parsed.data.emergencyContact,
-      emergencyPhone: parsed.data.emergencyPhone,
-      allergies: parsed.data.allergies,
-      medicalConditions: parsed.data.medicalConditions,
-      medications: parsed.data.medications,
-      notes: parsed.data.notes,
+      ...encryptedData,
     },
   });
 
-  // If patient has medical info, create initial medical history entry
+  // If patient has medical info, create initial medical history entry (already encrypted)
   if (parsed.data.medicalConditions || parsed.data.medications || parsed.data.notes) {
     await prisma.medicalHistory.create({
       data: {
         organizationId,
         patientId: patient.id,
-        medicalConditions: parsed.data.medicalConditions,
-        medications: parsed.data.medications,
-        notes: parsed.data.notes,
+        medicalConditions: encryptedData.medicalConditions,
+        medications: encryptedData.medications,
+        notes: encryptedData.notes,
       },
     });
   }
@@ -122,5 +135,5 @@ export async function POST(request: Request) {
     ipAddress: getClientIp(request),
   });
 
-  return NextResponse.json({ patient }, { status: 201 });
+  return NextResponse.json({ patient: decryptFields(patient, [...SENSITIVE_PATIENT_FIELDS]) }, { status: 201 });
 }

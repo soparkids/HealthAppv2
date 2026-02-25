@@ -11,7 +11,22 @@ const securityHeaders = [
   },
   {
     key: "Strict-Transport-Security",
-    value: "max-age=31536000; includeSubDomains",
+    value: "max-age=31536000; includeSubDomains; preload",
+  },
+  {
+    key: "Content-Security-Policy",
+    value: [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",  // Next.js requires inline scripts
+      "style-src 'self' 'unsafe-inline'",                   // Tailwind injects inline styles
+      "img-src 'self' data: https:",
+      "font-src 'self' data:",
+      "connect-src 'self' https:",
+      "frame-ancestors 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "upgrade-insecure-requests",
+    ].join("; "),
   },
 ];
 

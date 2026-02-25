@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { withOrgAuth, type OrgAuthContext } from "@/lib/org-auth";
 import { logAudit, getClientIp } from "@/lib/audit";
 import { updatePatientSchema } from "@/lib/validations/clinical";
+import { encryptFields, decryptFields, SENSITIVE_PATIENT_FIELDS, SENSITIVE_LAB_RESULT_FIELDS, SENSITIVE_MEDICAL_HISTORY_FIELDS, SENSITIVE_EYE_CONSULTATION_FIELDS } from "@/lib/encryption";
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await withOrgAuth(request);
@@ -24,7 +25,16 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: "Patient not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ patient });
+  // Decrypt sensitive fields on patient and nested clinical data
+  const decryptedPatient = {
+    ...decryptFields(patient, [...SENSITIVE_PATIENT_FIELDS]),
+    appointments: patient.appointments,
+    labResults: patient.labResults.map((r) => decryptFields(r, [...SENSITIVE_LAB_RESULT_FIELDS])),
+    medicalHistories: patient.medicalHistories.map((h) => decryptFields(h, [...SENSITIVE_MEDICAL_HISTORY_FIELDS])),
+    eyeConsultations: patient.eyeConsultations.map((c) => decryptFields(c, [...SENSITIVE_EYE_CONSULTATION_FIELDS])),
+  };
+
+  return NextResponse.json({ patient: decryptedPatient });
 }
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -46,16 +56,21 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const updateData: Record<string, unknown> = { ...parsed.data };
+  // Encrypt sensitive fields in update data
+  const updateData: Record<string, unknown> = encryptFields(
+    { ...parsed.data },
+    [...SENSITIVE_PATIENT_FIELDS]
+  );
   if (parsed.data.dateOfBirth) {
     updateData.dateOfBirth = new Date(parsed.data.dateOfBirth);
   }
 
   // Check if medical fields changed — if so, append history
+  // Compare against plaintext inputs (existing data is encrypted)
   const medicalChanged =
-    (parsed.data.medicalConditions !== undefined && parsed.data.medicalConditions !== existing.medicalConditions) ||
-    (parsed.data.medications !== undefined && parsed.data.medications !== existing.medications) ||
-    (parsed.data.notes !== undefined && parsed.data.notes !== existing.notes);
+    parsed.data.medicalConditions !== undefined ||
+    parsed.data.medications !== undefined ||
+    parsed.data.notes !== undefined;
 
   const patient = await prisma.patient.update({
     where: { id },
@@ -67,7 +82,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       data: {
         organizationId,
         patientId: id,
-        medicalConditions: patient.medicalConditions,
+        medicalConditions: patient.medicalConditions, // already encrypted from update
         medications: patient.medications,
         notes: patient.notes,
       },
@@ -84,7 +99,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     ipAddress: getClientIp(request),
   });
 
-  return NextResponse.json({ patient });
+  return NextResponse.json({ patient: decryptFields(patient, [...SENSITIVE_PATIENT_FIELDS]) });
 }
 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {

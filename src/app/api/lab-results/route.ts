@@ -4,6 +4,7 @@ import { withOrgAuth, type OrgAuthContext } from "@/lib/org-auth";
 import { requireFeature } from "@/lib/features";
 import { logAudit, getClientIp } from "@/lib/audit";
 import { createLabResultSchema } from "@/lib/validations/clinical";
+import { encrypt, decryptFields, SENSITIVE_LAB_RESULT_FIELDS } from "@/lib/encryption";
 
 export async function GET(request: Request) {
   const auth = await withOrgAuth(request);
@@ -32,8 +33,10 @@ export async function GET(request: Request) {
     prisma.labResult.count({ where }),
   ]);
 
+  const decryptedResults = results.map((r) => decryptFields(r, [...SENSITIVE_LAB_RESULT_FIELDS]));
+
   return NextResponse.json({
-    results,
+    results: decryptedResults,
     pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
   });
 }
@@ -65,9 +68,9 @@ export async function POST(request: Request) {
       organizationId,
       patientId: parsed.data.patientId,
       testName: parsed.data.testName,
-      resultValue: parsed.data.resultValue,
+      resultValue: encrypt(parsed.data.resultValue),
       datePerformed: new Date(parsed.data.datePerformed),
-      notes: parsed.data.notes,
+      notes: parsed.data.notes ? encrypt(parsed.data.notes) : undefined,
     },
   });
 
@@ -81,5 +84,5 @@ export async function POST(request: Request) {
     ipAddress: getClientIp(request),
   });
 
-  return NextResponse.json({ result }, { status: 201 });
+  return NextResponse.json({ result: decryptFields(result, [...SENSITIVE_LAB_RESULT_FIELDS]) }, { status: 201 });
 }

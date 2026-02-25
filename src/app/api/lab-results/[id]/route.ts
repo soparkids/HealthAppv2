@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { withOrgAuth, type OrgAuthContext } from "@/lib/org-auth";
 import { requireFeature } from "@/lib/features";
 import { logAudit, getClientIp } from "@/lib/audit";
+import { decryptFields, SENSITIVE_LAB_RESULT_FIELDS, SENSITIVE_PATIENT_FIELDS } from "@/lib/encryption";
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await withOrgAuth(request);
@@ -22,7 +23,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: "Lab result not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ result });
+  const decryptedResult = {
+    ...decryptFields(result, [...SENSITIVE_LAB_RESULT_FIELDS]),
+    patient: decryptFields(result.patient, [...SENSITIVE_PATIENT_FIELDS]),
+  };
+
+  return NextResponse.json({ result: decryptedResult });
 }
 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
