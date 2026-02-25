@@ -24,6 +24,21 @@ export async function apiFetch<T>(
   return res.json();
 }
 
+/** apiFetch with organization context header */
+export async function orgApiFetch<T>(
+  path: string,
+  orgId: string,
+  options?: RequestInit,
+): Promise<T> {
+  return apiFetch<T>(path, {
+    ...options,
+    headers: {
+      "x-organization-id": orgId,
+      ...options?.headers,
+    },
+  });
+}
+
 export const RECORD_TYPE_DISPLAY: Record<string, string> = {
   MRI: "MRI",
   XRAY: "X-Ray",

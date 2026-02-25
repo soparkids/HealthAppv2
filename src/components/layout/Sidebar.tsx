@@ -9,14 +9,24 @@ import {
   Users,
   UserCircle,
   Activity,
+  UserPlus,
+  Calendar,
+  TestTube,
+  Eye,
+  ClipboardList,
+  Settings,
 } from "lucide-react";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/patients", label: "Patients", icon: UserPlus },
+  { href: "/appointments", label: "Appointments", icon: Calendar },
+  { href: "/lab-results", label: "Lab Results", icon: TestTube },
+  { href: "/eye-consultations", label: "Eye Consult", icon: Eye },
   { href: "/records", label: "Records", icon: FolderOpen },
   { href: "/care", label: "Care", icon: HeartPulse },
   { href: "/family", label: "Family", icon: Users },
-  { href: "/profile", label: "Profile", icon: UserCircle },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export default function Sidebar() {
@@ -27,7 +37,7 @@ export default function Sidebar() {
       <div className="p-4">
         <div className="flex items-center gap-2 px-3 py-2 mb-6">
           <Activity className="h-7 w-7 text-primary" />
-          <span className="text-xl font-bold text-gray-900">HealthApp</span>
+          <span className="text-xl font-bold text-gray-900">NdụMed</span>
         </div>
 
         <nav className="space-y-1">
