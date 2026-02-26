@@ -89,6 +89,19 @@ export async function GET(request: NextRequest) {
   });
 }
 
+const VALID_RECORD_TYPES = ["MRI", "XRAY", "ULTRASOUND", "CT_SCAN", "OTHER"] as const;
+type ValidRecordType = (typeof VALID_RECORD_TYPES)[number];
+
+function normalizeRecordType(type: string | undefined): ValidRecordType {
+  if (!type) return "OTHER";
+  const upper = type.toUpperCase().replace(/[\s-]+/g, "_");
+  // Handle common aliases
+  if (upper === "X_RAY" || upper === "XRAY") return "XRAY";
+  if (upper === "CT_SCAN" || upper === "CTSCAN") return "CT_SCAN";
+  if ((VALID_RECORD_TYPES as readonly string[]).includes(upper)) return upper as ValidRecordType;
+  return "OTHER";
+}
+
 export async function POST(request: NextRequest) {
   const auth = await withAuth();
   if (auth instanceof NextResponse) return auth;
@@ -128,7 +141,7 @@ export async function POST(request: NextRequest) {
       userId: auth.userId,
       organizationId: organizationId || undefined,
       title,
-      type: type || "OTHER",
+      type: normalizeRecordType(type),
       bodyPart,
       facility,
       referringPhysician,

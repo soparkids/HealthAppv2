@@ -22,7 +22,13 @@ const steps = [
   { id: 3, label: "Review & Submit", icon: Eye },
 ];
 
-const recordTypes = ["X-Ray", "MRI", "CT Scan", "Ultrasound", "Lab Report", "Pathology", "Other"];
+const recordTypes = [
+  { label: "X-Ray", value: "XRAY" },
+  { label: "MRI", value: "MRI" },
+  { label: "CT Scan", value: "CT_SCAN" },
+  { label: "Ultrasound", value: "ULTRASOUND" },
+  { label: "Other", value: "OTHER" },
+];
 const acceptedFormats = ".dcm,.pdf,.jpg,.jpeg,.png";
 
 export default function RecordUploadPage() {
@@ -195,9 +201,9 @@ export default function RecordUploadPage() {
                     className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                   >
                     <option value="">Select type</option>
-                    {recordTypes.map((type) => (
-                      <option key={type} value={type}>
-                        {type}
+                    {recordTypes.map((rt) => (
+                      <option key={rt.value} value={rt.value}>
+                        {rt.label}
                       </option>
                     ))}
                   </select>
@@ -286,7 +292,7 @@ export default function RecordUploadPage() {
                 <dl className="grid grid-cols-2 gap-3">
                   {[
                     { label: "Title", value: formData.title },
-                    { label: "Type", value: formData.type },
+                    { label: "Type", value: recordTypes.find((rt) => rt.value === formData.type)?.label || formData.type },
                     { label: "Date", value: formData.date },
                     { label: "Facility", value: formData.facility || "N/A" },
                     { label: "Body Part", value: formData.bodyPart || "N/A" },
