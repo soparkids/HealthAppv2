@@ -11,8 +11,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const { organizationId } = auth as OrgAuthContext;
   const { id } = await params;
 
-  const featureGate = await requireFeature(organizationId, "eye_consultation");
-  if (featureGate) return featureGate;
+  // Allow reading existing consultations even if feature is disabled
 
   const consultation = await prisma.eyeConsultation.findFirst({
     where: { id, organizationId },

@@ -11,8 +11,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const { organizationId } = auth as OrgAuthContext;
   const { id } = await params;
 
-  const featureGate = await requireFeature(organizationId, "appointments");
-  if (featureGate) return featureGate;
+  // Allow reading existing appointments even if feature is disabled
 
   const appointment = await prisma.appointment.findFirst({
     where: { id, organizationId },

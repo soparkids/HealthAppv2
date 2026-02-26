@@ -11,8 +11,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const { organizationId } = auth as OrgAuthContext;
   const { id } = await params;
 
-  const featureGate = await requireFeature(organizationId, "lab_results");
-  if (featureGate) return featureGate;
+  // Allow reading existing lab results even if feature is disabled
 
   const result = await prisma.labResult.findFirst({
     where: { id, organizationId },

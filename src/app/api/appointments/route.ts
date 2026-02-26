@@ -10,8 +10,8 @@ export async function GET(request: Request) {
   if (auth instanceof NextResponse) return auth;
   const { organizationId } = auth as OrgAuthContext;
 
-  const featureGate = await requireFeature(organizationId, "appointments");
-  if (featureGate) return featureGate;
+  // Allow reading existing appointments even if feature is disabled
+  // Only block creation (POST) when feature is off
 
   const url = new URL(request.url);
   const page = Math.max(1, parseInt(url.searchParams.get("page") || "1"));

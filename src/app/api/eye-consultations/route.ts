@@ -11,8 +11,7 @@ export async function GET(request: Request) {
   if (auth instanceof NextResponse) return auth;
   const { organizationId } = auth as OrgAuthContext;
 
-  const featureGate = await requireFeature(organizationId, "eye_consultation");
-  if (featureGate) return featureGate;
+  // Allow reading existing consultations even if feature is disabled (only block writes)
 
   const url = new URL(request.url);
   const page = Math.max(1, parseInt(url.searchParams.get("page") || "1"));
