@@ -148,37 +148,49 @@ async function interpretWithGoogle(req: InterpretationRequest): Promise<Interpre
   if (!apiKey) throw new Error("GOOGLE_AI_API_KEY not configured");
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = "gemini-2.0-flash";
-  const generativeModel = genAI.getGenerativeModel({
-    model,
-    systemInstruction: SYSTEM_PROMPT,
-    generationConfig: {
-      temperature: 0.2,
-      maxOutputTokens: 1000,
-      responseMimeType: "application/json",
-    },
-  });
-  const start = Date.now();
+  // Try models in order of preference
+  const models = ["gemini-2.0-flash", "gemini-1.5-flash"];
+  let lastError: Error | null = null;
 
-  const result = await generativeModel.generateContent(buildUserPrompt(req));
-  const latencyMs = Date.now() - start;
+  for (const model of models) {
+    try {
+      const generativeModel = genAI.getGenerativeModel({
+        model,
+        systemInstruction: SYSTEM_PROMPT,
+        generationConfig: {
+          temperature: 0.2,
+          maxOutputTokens: 1000,
+          responseMimeType: "application/json",
+        },
+      });
+      const start = Date.now();
 
-  const text = result.response.text();
-  if (!text) throw new Error("Empty response from Google");
+      const result = await generativeModel.generateContent(buildUserPrompt(req));
+      const latencyMs = Date.now() - start;
 
-  const parsed = JSON.parse(text);
-  const usage = result.response.usageMetadata;
-  return {
-    provider: "google",
-    model,
-    interpretation: parsed.interpretation,
-    summary: parsed.summary,
-    riskLevel: parsed.riskLevel,
-    confidence: parsed.confidence,
-    recommendations: parsed.recommendations,
-    tokenUsage: (usage?.totalTokenCount ?? 0),
-    latencyMs,
-  };
+      const text = result.response.text();
+      if (!text) throw new Error(`Empty response from Google (${model})`);
+
+      const parsed = JSON.parse(text);
+      const usage = result.response.usageMetadata;
+      return {
+        provider: "google",
+        model,
+        interpretation: parsed.interpretation,
+        summary: parsed.summary,
+        riskLevel: parsed.riskLevel,
+        confidence: parsed.confidence,
+        recommendations: parsed.recommendations,
+        tokenUsage: (usage?.totalTokenCount ?? 0),
+        latencyMs,
+      };
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      console.error(`Google model ${model} failed:`, lastError.message);
+    }
+  }
+
+  throw new Error(`Google AI failed (tried ${models.join(", ")}): ${lastError?.message}`);
 }
 
 // --- Provider Registry ---

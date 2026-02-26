@@ -18,7 +18,7 @@ export async function apiFetch<T>(
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new ApiError(res.status, body.error || "Something went wrong");
+    throw new ApiError(res.status, body.message || body.error || "Something went wrong");
   }
 
   return res.json();
