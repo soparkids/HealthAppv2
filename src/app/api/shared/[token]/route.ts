@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { decryptFields, SENSITIVE_REPORT_FIELDS } from "@/lib/encryption";
 
 export async function GET(
   _request: NextRequest,
@@ -43,7 +44,9 @@ export async function GET(
       where: { medicalRecordId: share.medicalRecordId },
       select: { content: true, summary: true },
     });
-    report = reportData;
+    report = reportData
+      ? decryptFields(reportData, ["content", "summary"] as const as (keyof typeof reportData)[])
+      : null;
   }
 
   return NextResponse.json({

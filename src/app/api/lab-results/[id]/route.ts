@@ -22,12 +22,31 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: "Lab result not found" }, { status: 404 });
   }
 
-  const decryptedResult = {
-    ...decryptFields(result, [...SENSITIVE_LAB_RESULT_FIELDS]),
-    patient: decryptFields(result.patient, [...SENSITIVE_PATIENT_FIELDS]),
-  };
+  const decrypted = decryptFields(result, [...SENSITIVE_LAB_RESULT_FIELDS]);
 
-  return NextResponse.json({ result: decryptedResult });
+  // Parse recommendations from encrypted JSON string into an array
+  let recommendations: string[] | null = null;
+  if (typeof decrypted.recommendations === "string" && decrypted.recommendations) {
+    try {
+      recommendations = JSON.parse(decrypted.recommendations);
+    } catch {
+      recommendations = [decrypted.recommendations];
+    }
+  }
+
+  // Decrypt patient fields separately, handling missing patient gracefully
+  const decryptedPatient = result.patient
+    ? decryptFields(result.patient, [...SENSITIVE_PATIENT_FIELDS])
+    : null;
+
+  // Build response excluding raw nested relations from spread, then add them back explicitly
+  const { patient: _rawPatient, interpretations: _rawInterps, ...labResultFields } = decrypted as Record<string, unknown>;
+
+  return NextResponse.json({
+    ...labResultFields,
+    recommendations,
+    patient: decryptedPatient,
+  });
 }
 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {

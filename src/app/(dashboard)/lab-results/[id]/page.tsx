@@ -75,7 +75,7 @@ export default function LabResultDetailPage() {
   const router = useRouter();
   const resultId = params.id as string;
 
-  const [labResult, setLabResult] = useState<LabResult | null>(null);
+  const [labResult, setLabResult] = useState<(LabResult & { patient?: LabResult["patient"] | null }) | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -109,12 +109,13 @@ export default function LabResultDetailPage() {
     setInterpreting(true);
     setError("");
     try {
-      const data = await orgApiFetch<LabResult>(
+      await orgApiFetch(
         `/lab-results/${resultId}/interpret`,
         orgId,
         { method: "POST" }
       );
-      setLabResult(data);
+      // Re-fetch the full lab result to get updated interpretation fields
+      await fetchLabResult();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to interpret lab result.");
     } finally {
@@ -126,11 +127,11 @@ export default function LabResultDetailPage() {
     if (!orgId) return;
     setHistoryLoading(true);
     try {
-      const data = await orgApiFetch<InterpretationHistory[]>(
+      const data = await orgApiFetch<{ interpretations: InterpretationHistory[]; total: number }>(
         `/lab-results/${resultId}/interpret`,
         orgId
       );
-      setInterpretationHistory(Array.isArray(data) ? data : []);
+      setInterpretationHistory(Array.isArray(data.interpretations) ? data.interpretations : []);
     } catch {
       // silently handle
     } finally {
@@ -544,43 +545,49 @@ export default function LabResultDetailPage() {
               </h2>
             </CardHeader>
             <CardBody className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-full bg-primary-light flex items-center justify-center">
-                  <User className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">
-                    {labResult.patient.firstName} {labResult.patient.lastName}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {labResult.patient.patientNumber}
-                  </p>
-                </div>
-              </div>
-              <div className="border-t border-gray-100 pt-4 space-y-3">
-                <div className="flex items-start gap-3">
-                  <User className="h-5 w-5 text-gray-400 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase tracking-wider">
-                      Patient ID
-                    </p>
-                    <p className="text-sm font-medium text-gray-900">
-                      {labResult.patient.patientNumber}
-                    </p>
+              {labResult.patient ? (
+                <>
+                  <div className="flex items-center gap-3">
+                    <div className="h-12 w-12 rounded-full bg-primary-light flex items-center justify-center">
+                      <User className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">
+                        {labResult.patient.firstName} {labResult.patient.lastName}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {labResult.patient.patientNumber}
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Clock className="h-5 w-5 text-gray-400 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase tracking-wider">
-                      Record Created
-                    </p>
-                    <p className="text-sm font-medium text-gray-900">
-                      {new Date(labResult.createdAt).toLocaleDateString()}
-                    </p>
+                  <div className="border-t border-gray-100 pt-4 space-y-3">
+                    <div className="flex items-start gap-3">
+                      <User className="h-5 w-5 text-gray-400 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase tracking-wider">
+                          Patient ID
+                        </p>
+                        <p className="text-sm font-medium text-gray-900">
+                          {labResult.patient.patientNumber}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <Clock className="h-5 w-5 text-gray-400 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase tracking-wider">
+                          Record Created
+                        </p>
+                        <p className="text-sm font-medium text-gray-900">
+                          {new Date(labResult.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
+                </>
+              ) : (
+                <p className="text-sm text-gray-500">Patient information unavailable.</p>
+              )}
             </CardBody>
           </Card>
         </div>

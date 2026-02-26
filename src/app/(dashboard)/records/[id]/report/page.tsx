@@ -37,7 +37,10 @@ export default function ReportPage() {
           setNotFound(true);
           return;
         }
-        if (!res.ok) throw new Error("Failed to load report");
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body.error || "Failed to load report");
+        }
         const data = await res.json();
         setReport(data);
       } catch (err) {
@@ -103,25 +106,27 @@ export default function ReportPage() {
           <ArrowLeft className="w-4 h-4" />
           Back to Record
         </Link>
-        <div className="mt-3">
-          <h1 className="text-2xl font-bold text-gray-900">
-            {report.medicalRecord.title}
-          </h1>
-          <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-gray-500">
-            <span className="bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-medium">
-              {report.medicalRecord.type.replace("_", " ")}
-            </span>
-            {report.medicalRecord.bodyPart && (
-              <span>{report.medicalRecord.bodyPart}</span>
-            )}
-            {report.medicalRecord.facility && (
-              <span>at {report.medicalRecord.facility}</span>
-            )}
-            <span>
-              {new Date(report.medicalRecord.recordDate).toLocaleDateString()}
-            </span>
+        {report.medicalRecord && (
+          <div className="mt-3">
+            <h1 className="text-2xl font-bold text-gray-900">
+              {report.medicalRecord.title}
+            </h1>
+            <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-gray-500">
+              <span className="bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-medium">
+                {report.medicalRecord.type.replace("_", " ")}
+              </span>
+              {report.medicalRecord.bodyPart && (
+                <span>{report.medicalRecord.bodyPart}</span>
+              )}
+              {report.medicalRecord.facility && (
+                <span>at {report.medicalRecord.facility}</span>
+              )}
+              <span>
+                {new Date(report.medicalRecord.recordDate).toLocaleDateString()}
+              </span>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       <ReportViewer

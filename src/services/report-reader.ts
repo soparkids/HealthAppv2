@@ -73,6 +73,7 @@ export interface IdentifiedTerm {
 }
 
 export function parseReportTerms(reportText: string): IdentifiedTerm[] {
+  if (!reportText) return [];
   const matches: IdentifiedTerm[] = [];
   const seen = new Set<string>();
   let match: RegExpExecArray | null;
