@@ -15,6 +15,7 @@ import {
   UserPlus,
   ChevronRight,
 } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { useOrganization } from "@/lib/hooks/use-organization";
 import { orgApiFetch } from "@/lib/api";
 import Card, { CardBody, CardHeader, CardFooter } from "@/components/ui/Card";
@@ -89,7 +90,9 @@ const ALL_ROLES: OrgRole[] = ["OWNER", "ADMIN", "DOCTOR", "NURSE", "RECEPTIONIST
 
 export default function SettingsPage() {
   const router = useRouter();
+  const { data: session } = useSession();
   const { orgId, activeOrg, organizations, loading: orgLoading } = useOrganization();
+  const canCreateOrg = session?.user?.role === "PROVIDER" || session?.user?.role === "ADMIN";
   const [activeTab, setActiveTab] = useState<SettingsTab>("info");
 
   // Feature flags state
@@ -260,21 +263,23 @@ export default function SettingsPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
           <p className="text-sm text-gray-500 mt-1">
-            Create an organization to get started.
+            {canCreateOrg ? "Create an organization to get started." : "You are not part of any organization yet."}
           </p>
         </div>
         <EmptyState
           icon={<Building2 className="h-16 w-16" />}
           title="No Organization"
-          description="You are not part of any organization yet. Create one to start managing your team and features."
-          action={
+          description={canCreateOrg
+            ? "You are not part of any organization yet. Create one to start managing your team and features."
+            : "You are not part of any organization yet. Ask your healthcare provider to add you to their organization."}
+          action={canCreateOrg ? (
             <Button
               icon={<Plus className="h-4 w-4" />}
               onClick={() => router.push("/settings/create-org")}
             >
               Create Organization
             </Button>
-          }
+          ) : undefined}
         />
       </div>
     );
@@ -393,14 +398,16 @@ export default function SettingsPage() {
             </div>
           </CardBody>
           <CardFooter className="flex justify-end">
-            <Button
-              variant="outline"
-              size="sm"
-              icon={<Plus className="h-4 w-4" />}
-              onClick={() => router.push("/settings/create-org")}
-            >
-              Create New Organization
-            </Button>
+            {canCreateOrg && (
+              <Button
+                variant="outline"
+                size="sm"
+                icon={<Plus className="h-4 w-4" />}
+                onClick={() => router.push("/settings/create-org")}
+              >
+                Create New Organization
+              </Button>
+            )}
           </CardFooter>
         </Card>
       )}

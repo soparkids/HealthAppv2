@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   ArrowLeft,
   Building2,
@@ -11,6 +13,7 @@ import { apiFetch } from "@/lib/api";
 import Card, { CardBody, CardHeader, CardFooter } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
+import Spinner from "@/components/ui/Spinner";
 
 function slugify(text: string): string {
   return text
@@ -23,7 +26,28 @@ function slugify(text: string): string {
 }
 
 export default function CreateOrgPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const { refetch } = useOrganization();
+
+  // Redirect patients away — only PROVIDER and ADMIN can create orgs
+  useEffect(() => {
+    if (status === "authenticated" && session?.user?.role !== "PROVIDER" && session?.user?.role !== "ADMIN") {
+      router.replace("/dashboard");
+    }
+  }, [session, status, router]);
+
+  if (status === "loading") {
+    return (
+      <div className="flex justify-center py-16">
+        <Spinner size="lg" />
+      </div>
+    );
+  }
+
+  if (session?.user?.role !== "PROVIDER" && session?.user?.role !== "ADMIN") {
+    return null;
+  }
 
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");

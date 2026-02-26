@@ -85,6 +85,11 @@ export default withAuth(
       return NextResponse.redirect(new URL("/dashboard", req.url));
     }
 
+    // Organization creation — only PROVIDER and ADMIN can access
+    if (pathname.includes("/settings/create-org") && token?.role !== "PROVIDER" && token?.role !== "ADMIN") {
+      return NextResponse.redirect(new URL("/dashboard", req.url));
+    }
+
     // Inject active organization into request headers for API routes
     const response = NextResponse.next();
     if (token?.activeOrganizationId) {

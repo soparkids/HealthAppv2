@@ -38,10 +38,19 @@ export async function GET() {
 }
 
 // POST: Create a new organization (creator becomes OWNER)
+// Only PROVIDER and ADMIN platform roles can create organizations
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Only healthcare providers and admins can create organizations
+  if (session.user.role !== "PROVIDER" && session.user.role !== "ADMIN") {
+    return NextResponse.json(
+      { error: "Only healthcare providers can create organizations" },
+      { status: 403 }
+    );
   }
 
   const body = await request.json();
