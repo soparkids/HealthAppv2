@@ -35,7 +35,7 @@ export async function GET(request: Request) {
     {
       id: "google",
       name: "Google",
-      model: "gemini-2.0-flash",
+      model: "gemini-2.5-flash",
       configured: configured.includes("google"),
     },
   ];

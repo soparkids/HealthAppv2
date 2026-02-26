@@ -148,8 +148,8 @@ async function interpretWithGoogle(req: InterpretationRequest): Promise<Interpre
   if (!apiKey) throw new Error("GOOGLE_AI_API_KEY not configured");
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  // Try models in order of preference
-  const models = ["gemini-2.0-flash", "gemini-1.5-flash"];
+  // Try models in order of preference (gemini-1.5 is retired; gemini-2.0 sunsets June 2026)
+  const models = ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
   let lastError: Error | null = null;
 
   for (const model of models) {
