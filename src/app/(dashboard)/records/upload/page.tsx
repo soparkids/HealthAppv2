@@ -9,6 +9,7 @@ import {
   FileText,
   ClipboardList,
   Eye,
+  AlertCircle,
 } from "lucide-react";
 import Card, { CardBody, CardHeader } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
@@ -28,6 +29,7 @@ export default function RecordUploadPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [files, setFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: "",
     type: "",
@@ -47,10 +49,34 @@ export default function RecordUploadPage() {
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
-    // Simulate upload
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    setIsSubmitting(false);
-    window.location.href = "/records";
+    setSubmitError(null);
+    try {
+      const res = await fetch("/api/records", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: formData.title,
+          type: formData.type || "OTHER",
+          recordDate: formData.date,
+          facility: formData.facility || undefined,
+          bodyPart: formData.bodyPart || undefined,
+          notes: formData.notes || undefined,
+          fileType: files[0]?.type || undefined,
+          fileSize: files[0]?.size || undefined,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to save record");
+      }
+
+      window.location.href = "/records";
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : "Failed to save record. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const canProceedStep1 = files.length > 0;
@@ -283,10 +309,17 @@ export default function RecordUploadPage() {
                 )}
               </div>
 
+              {submitError && (
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 border border-red-200">
+                  <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 shrink-0" />
+                  <p className="text-sm text-red-700">{submitError}</p>
+                </div>
+              )}
+
               {isSubmitting && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">Uploading...</span>
+                    <span className="text-gray-600">Saving record...</span>
                     <span className="text-primary font-medium">Processing</span>
                   </div>
                   <div className="h-2 bg-gray-100 rounded-full overflow-hidden">

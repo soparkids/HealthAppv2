@@ -66,19 +66,24 @@ type FilterStatus = "ALL" | "PENDING" | "SCHEDULED" | "COMPLETED" | "OVERDUE";
 export default function CarePage() {
   const [followUps, setFollowUps] = useState<FollowUp[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("ALL");
   const [sortBy, setSortBy] = useState<SortBy>("dueDate");
 
   useEffect(() => {
     async function fetchFollowUps() {
       try {
+        setFetchError(null);
         const res = await fetch("/api/follow-ups");
         if (res.ok) {
           const data = await res.json();
           setFollowUps(data);
+        } else {
+          const data = await res.json().catch(() => ({}));
+          setFetchError(data.error || "Failed to load follow-ups");
         }
       } catch {
-        // silently handle
+        setFetchError("Network error — could not load follow-ups");
       } finally {
         setLoading(false);
       }
@@ -116,7 +121,7 @@ export default function CarePage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -125,13 +130,19 @@ export default function CarePage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
-          <Stethoscope className="w-7 h-7 text-blue-600" />
+          <Stethoscope className="w-7 h-7 text-primary" />
           <h1 className="text-2xl font-bold text-gray-900">MyCare Navigator</h1>
         </div>
         <p className="text-gray-500">
           Track your follow-up recommendations and manage your care journey.
         </p>
       </div>
+
+      {fetchError && (
+        <div className="mb-4 p-4 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
+          {fetchError}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {(Object.entries(statusConfig) as [keyof typeof statusConfig, (typeof statusConfig)[keyof typeof statusConfig]][]).map(
@@ -143,7 +154,7 @@ export default function CarePage() {
                 onClick={() => setFilterStatus(filterStatus === key ? "ALL" : key)}
                 className={`p-4 rounded-xl border transition-all text-left ${
                   filterStatus === key
-                    ? "border-blue-600 ring-2 ring-blue-100"
+                    ? "border-primary ring-2 ring-primary/10"
                     : "border-gray-200 hover:border-gray-300"
                 }`}
               >
@@ -170,7 +181,7 @@ export default function CarePage() {
                 <select
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value as FilterStatus)}
-                  className="pl-8 pr-3 py-1.5 text-sm rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white"
+                  className="pl-8 pr-3 py-1.5 text-sm rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary appearance-none bg-white"
                 >
                   <option value="ALL">All Status</option>
                   <option value="PENDING">Pending</option>
@@ -253,7 +264,7 @@ export default function CarePage() {
                     const Ico = cfg.icon;
                     return (
                       <div key={followUp.id} className="relative">
-                        <span className="absolute -left-[31px] w-4 h-4 rounded-full bg-white border-2 border-blue-600" />
+                        <span className="absolute -left-[31px] w-4 h-4 rounded-full bg-white border-2 border-primary" />
                         <div className="text-xs text-gray-400 mb-1">
                           {new Date(followUp.createdAt).toLocaleDateString()}
                         </div>

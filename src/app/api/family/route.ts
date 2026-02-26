@@ -10,11 +10,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const orgId = request.headers.get("x-organization-id");
-  if (orgId) {
-    const featureCheck = await requireFeature(orgId, "family_management");
-    if (featureCheck) return featureCheck;
-  }
+  // Allow reading existing family members even if feature is disabled (only block writes)
 
   const familyMembers = await prisma.familyMember.findMany({
     where: { userId: session.user.id },

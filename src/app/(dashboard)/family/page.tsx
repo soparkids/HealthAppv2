@@ -30,16 +30,21 @@ export default function FamilyPage() {
   const [relationship, setRelationship] = useState("");
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   async function fetchMembers() {
     try {
+      setFetchError(null);
       const res = await fetch("/api/family");
       if (res.ok) {
         const data = await res.json();
         setMembers(data);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setFetchError(data.error || "Failed to load family members");
       }
     } catch {
-      // silently handle
+      setFetchError("Network error — could not load family members");
     } finally {
       setLoading(false);
     }
@@ -91,7 +96,7 @@ export default function FamilyPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -101,7 +106,7 @@ export default function FamilyPage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <Users className="w-7 h-7 text-blue-600" />
+            <Users className="w-7 h-7 text-primary" />
             <h1 className="text-2xl font-bold text-gray-900">Family Management</h1>
           </div>
           <p className="text-gray-500">
@@ -110,7 +115,7 @@ export default function FamilyPage() {
         </div>
         <button
           onClick={() => setShowAddForm(!showAddForm)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
+          className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90"
         >
           <UserPlus className="w-4 h-4" />
           Add Family Member
@@ -139,7 +144,7 @@ export default function FamilyPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="family.member@example.com"
-                className="w-full rounded-lg border border-gray-300 p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-lg border border-gray-300 p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
             <div>
@@ -150,7 +155,7 @@ export default function FamilyPage() {
                 required
                 value={relationship}
                 onChange={(e) => setRelationship(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-lg border border-gray-300 p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="">Select relationship</option>
                 <option value="Spouse">Spouse</option>
@@ -167,11 +172,17 @@ export default function FamilyPage() {
             <button
               type="submit"
               disabled={adding}
-              className="w-full py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+              className="w-full py-2.5 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
             >
               {adding ? "Adding..." : "Add Member"}
             </button>
           </form>
+        </div>
+      )}
+
+      {fetchError && (
+        <div className="mb-4 p-4 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
+          {fetchError}
         </div>
       )}
 
@@ -183,7 +194,7 @@ export default function FamilyPage() {
               href={`/family/${fm.id}`}
               className="flex items-center gap-4 bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow"
             >
-              <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-semibold">
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
                 {fm.member.avatar ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -227,7 +238,7 @@ export default function FamilyPage() {
           </p>
           <button
             onClick={() => setShowAddForm(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90"
           >
             <UserPlus className="w-4 h-4" />
             Add Family Member

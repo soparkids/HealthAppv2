@@ -11,8 +11,7 @@ export async function GET(request: Request) {
   if (auth instanceof NextResponse) return auth;
   const { organizationId } = auth as OrgAuthContext;
 
-  const featureGate = await requireFeature(organizationId, "medical_history");
-  if (featureGate) return featureGate;
+  // Allow reading existing history even if feature is disabled (only block writes)
 
   const url = new URL(request.url);
   const patientId = url.searchParams.get("patientId");
