@@ -8,8 +8,7 @@ export async function GET(request: Request) {
   if (auth instanceof NextResponse) return auth;
   const { organizationId } = auth as OrgAuthContext;
 
-  const featureGate = await requireFeature(organizationId, "appointments");
-  if (featureGate) return featureGate;
+  // Allow reading upcoming appointments even if feature is disabled
 
   const url = new URL(request.url);
   const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get("limit") || "20")));

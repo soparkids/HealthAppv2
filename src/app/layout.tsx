@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "HealthApp - Your Medical Records, Simplified",
+  title: "NdụMed - Your Medical Records, Simplified",
   description:
     "Securely manage, share, and understand your medical records with AI-powered insights.",
 };

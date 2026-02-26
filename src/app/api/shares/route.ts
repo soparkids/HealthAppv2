@@ -8,11 +8,7 @@ export async function GET(request: NextRequest) {
   const auth = await withAuth();
   if (auth instanceof NextResponse) return auth;
 
-  const orgId = request.headers.get("x-organization-id");
-  if (orgId) {
-    const featureCheck = await requireFeature(orgId, "report_sharing");
-    if (featureCheck) return featureCheck;
-  }
+  // Allow reading existing shares even if feature is disabled (only block writes)
 
   const recordId = request.nextUrl.searchParams.get("recordId");
 

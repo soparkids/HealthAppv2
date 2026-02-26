@@ -8,11 +8,7 @@ export async function GET(request: NextRequest) {
   const auth = await withAuth();
   if (auth instanceof NextResponse) return auth;
 
-  const orgId = request.headers.get("x-organization-id");
-  if (orgId) {
-    const featureCheck = await requireFeature(orgId, "follow_ups");
-    if (featureCheck) return featureCheck;
-  }
+  // Allow reading existing follow-ups even if feature is disabled (only block writes)
 
   const followUps = await prisma.followUp.findMany({
     where: { userId: auth.userId },
