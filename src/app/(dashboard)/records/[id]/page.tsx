@@ -212,15 +212,17 @@ export default function RecordDetailPage() {
                       </p>
                     </div>
                   )}
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() =>
-                      (window.location.href = `/records/${record.id}/report`)
-                    }
-                  >
-                    View Full Report with AI Summary
-                  </Button>
+                  {record.report && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() =>
+                        (window.location.href = `/records/${record.id}/report`)
+                      }
+                    >
+                      View Full Report with AI Summary
+                    </Button>
+                  )}
                 </div>
               )}
               {activeTab === "shares" && (

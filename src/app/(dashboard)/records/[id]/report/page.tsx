@@ -27,11 +27,16 @@ export default function ReportPage() {
   const [report, setReport] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     async function fetchReport() {
       try {
         const res = await fetch(`/api/reports/${recordId}/terms`);
+        if (res.status === 404) {
+          setNotFound(true);
+          return;
+        }
         if (!res.ok) throw new Error("Failed to load report");
         const data = await res.json();
         setReport(data);
@@ -48,6 +53,25 @@ export default function ReportPage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
+  if (notFound) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 text-center">
+          <p className="text-gray-700">
+            No report is available for this record yet.
+          </p>
+          <Link
+            href={`/records/${recordId}`}
+            className="inline-flex items-center gap-2 mt-4 text-blue-600 hover:text-blue-700"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Record
+          </Link>
+        </div>
       </div>
     );
   }
