@@ -287,7 +287,12 @@ export default function AppointmentsPage() {
                             <div className="flex items-center gap-2">
                               <Calendar className="h-4 w-4 text-gray-400 shrink-0" />
                               <span className="text-sm text-gray-900">
-                                {new Date(appt.appointmentDate).toLocaleDateString()}
+                                {new Intl.DateTimeFormat("en-US", {
+                                  year: "numeric",
+                                  month: "short",
+                                  day: "numeric",
+                                  timeZone: "UTC",
+                                }).format(new Date(appt.appointmentDate))}
                               </span>
                             </div>
                           </td>

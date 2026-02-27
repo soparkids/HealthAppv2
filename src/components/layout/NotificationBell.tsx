@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   Bell,
@@ -51,10 +51,17 @@ export default function NotificationBell() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
+  // Generation counter to discard stale poll responses after optimistic updates
+  const fetchGenRef = useRef(0);
 
   const fetchNotifications = useCallback(() => {
-    apiFetch<{ notifications: Notification[]; unreadCount: number }>("/notifications?limit=10")
+    const gen = ++fetchGenRef.current;
+    apiFetch<{ notifications: Notification[]; unreadCount: number }>(
+      "/notifications?limit=10",
+    )
       .then((data) => {
+        // Ignore stale responses if a newer mutation has bumped the generation
+        if (gen !== fetchGenRef.current) return;
         setNotifications(data.notifications);
         setUnreadCount(data.unreadCount);
       })
@@ -69,16 +76,21 @@ export default function NotificationBell() {
   }, [fetchNotifications]);
 
   const markAllRead = async () => {
+    // Bump generation so any in-flight or subsequent poll is discarded until fresh fetch
+    fetchGenRef.current++;
+    // Optimistic update first for instant UI feedback
+    setUnreadCount(0);
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     await apiFetch("/notifications", {
       method: "PATCH",
       body: JSON.stringify({ markAllRead: true }),
     }).catch(() => {});
-    setUnreadCount(0);
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   };
 
   const handleClick = (notification: Notification) => {
     if (!notification.read) {
+      // Bump generation to protect optimistic update from stale polls
+      fetchGenRef.current++;
       apiFetch("/notifications", {
         method: "PATCH",
         body: JSON.stringify({ ids: [notification.id] }),
