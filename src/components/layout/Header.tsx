@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
+import Link from "next/link";
 import { Search, ChevronDown, LogOut, Settings, User, Menu } from "lucide-react";
 import Avatar from "@/components/ui/Avatar";
 import NotificationBell from "./NotificationBell";
@@ -79,20 +80,20 @@ export default function Header() {
                 onClick={() => setDropdownOpen(false)}
               />
               <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg border border-gray-200 shadow-lg py-1 z-20">
-                <a
+                <Link
                   href="/profile"
                   className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                 >
                   <User className="h-4 w-4" />
                   Profile
-                </a>
-                <a
+                </Link>
+                <Link
                   href="/settings"
                   className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                 >
                   <Settings className="h-4 w-4" />
                   Settings
-                </a>
+                </Link>
                 <hr className="my-1 border-gray-100" />
                 <button
                   onClick={() => signOut({ callbackUrl: "/login" })}

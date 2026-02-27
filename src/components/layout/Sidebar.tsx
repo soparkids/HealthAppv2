@@ -105,9 +105,15 @@ export default function Sidebar() {
           <div
             className="fixed inset-0 bg-black/50"
             onClick={close}
+            aria-hidden="true"
           />
           {/* Slide-in panel */}
-          <aside className="fixed top-0 left-0 w-72 h-full bg-white shadow-xl z-50 overflow-y-auto">
+          <aside
+            className="fixed top-0 left-0 w-72 h-full bg-white shadow-xl z-50 overflow-y-auto"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Navigation menu"
+          >
             <div className="p-4">
               <div className="flex items-center justify-between px-3 py-2 mb-6">
                 <div className="flex items-center gap-2">
@@ -117,6 +123,7 @@ export default function Sidebar() {
                 <button
                   onClick={close}
                   className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100"
+                  aria-label="Close navigation"
                 >
                   <X className="h-5 w-5" />
                 </button>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import {
   Bell,
   Calendar,
@@ -46,6 +47,7 @@ function timeAgo(dateStr: string): string {
 }
 
 export default function NotificationBell() {
+  const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
@@ -88,7 +90,11 @@ export default function NotificationBell() {
     }
     if (notification.link) {
       setIsOpen(false);
-      window.location.href = notification.link;
+      if (notification.link.startsWith("/")) {
+        router.push(notification.link);
+      } else {
+        window.location.href = notification.link;
+      }
     }
   };
 

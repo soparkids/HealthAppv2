@@ -211,11 +211,17 @@ export default function AppointmentsPage() {
       </Card>
 
       {/* Calendar View */}
-      {viewMode === "calendar" && !loading && (
-        <CalendarView
-          appointments={filteredAppointments}
-          onAppointmentClick={(id) => router.push(`/appointments/${id}`)}
-        />
+      {viewMode === "calendar" && (
+        loading ? (
+          <div className="flex justify-center py-12">
+            <Spinner size="lg" />
+          </div>
+        ) : (
+          <CalendarView
+            appointments={filteredAppointments}
+            onAppointmentClick={(id) => router.push(`/appointments/${id}`)}
+          />
+        )
       )}
 
       {/* List View */}

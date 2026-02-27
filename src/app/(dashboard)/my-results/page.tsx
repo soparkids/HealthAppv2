@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { TestTube, AlertTriangle, CheckCircle, Clock, ArrowRight } from "lucide-react";
-import Card, { CardBody, CardHeader } from "@/components/ui/Card";
+import { TestTube, AlertTriangle, CheckCircle, Clock } from "lucide-react";
+import Card, { CardBody } from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Spinner from "@/components/ui/Spinner";
 import { apiFetch } from "@/lib/api";
@@ -28,7 +28,9 @@ interface LabResult {
   } | null;
 }
 
-const RISK_COLORS: Record<string, string> = {
+type BadgeVariant = "success" | "warning" | "danger" | "default";
+
+const RISK_COLORS: Record<string, BadgeVariant> = {
   LOW: "success",
   MODERATE: "warning",
   HIGH: "danger",
@@ -116,7 +118,7 @@ export default function MyResultsPage() {
 
                   <div className="flex items-center gap-2 sm:flex-col sm:items-end">
                     {result.latestInterpretation ? (
-                      <Badge variant={(RISK_COLORS[result.latestInterpretation.riskLevel] || "default") as "success" | "warning" | "danger" | "default"}>
+                      <Badge variant={RISK_COLORS[result.latestInterpretation.riskLevel] || "default"}>
                         {result.latestInterpretation.riskLevel === "LOW" && <CheckCircle className="h-3 w-3 mr-1" />}
                         {(result.latestInterpretation.riskLevel === "HIGH" || result.latestInterpretation.riskLevel === "CRITICAL") && <AlertTriangle className="h-3 w-3 mr-1" />}
                         {result.latestInterpretation.riskLevel} Risk

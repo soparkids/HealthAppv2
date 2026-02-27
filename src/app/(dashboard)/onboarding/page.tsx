@@ -61,23 +61,28 @@ export default function OnboardingPage() {
   const [invitedMembers, setInvitedMembers] = useState<Array<{ email: string; role: string }>>([]);
   const [inviting, setInviting] = useState(false);
 
+  // Error state
+  const [stepError, setStepError] = useState<string | null>(null);
+
   const handleSavePrefix = async () => {
     if (!orgId || !prefix.trim()) return;
     setPrefixSaving(true);
+    setStepError(null);
     try {
       await orgApiFetch("/patients/prefix", orgId, {
         method: "PUT",
         body: JSON.stringify({ prefix: prefix.trim().toUpperCase() }),
       });
+      setCurrentStep(1);
     } catch {
-      // Non-blocking — continue anyway
+      setStepError("Failed to save prefix. You can skip and set it later in Settings.");
     }
     setPrefixSaving(false);
-    setCurrentStep(1);
   };
 
   const handleSaveFeatures = async () => {
     if (!orgId) return;
+    setStepError(null);
     try {
       const features = Object.entries(enabledFeatures).map(([key, enabled]) => ({
         featureKey: key,
@@ -87,15 +92,17 @@ export default function OnboardingPage() {
         method: "PATCH",
         body: JSON.stringify({ features }),
       });
+      setCurrentStep(2);
     } catch {
-      // Non-blocking
+      setStepError("Failed to save features. You can adjust them later in Settings.");
+      setCurrentStep(2);
     }
-    setCurrentStep(2);
   };
 
   const handleInvite = async () => {
     if (!orgId || !inviteEmail.trim()) return;
     setInviting(true);
+    setStepError(null);
     try {
       await orgApiFetch(`/organizations/${orgId}/members`, orgId, {
         method: "POST",
@@ -104,7 +111,7 @@ export default function OnboardingPage() {
       setInvitedMembers((prev) => [...prev, { email: inviteEmail.trim(), role: inviteRole }]);
       setInviteEmail("");
     } catch {
-      // Silently handle — user may not exist yet
+      setStepError("Failed to add member. They may need to register first.");
     }
     setInviting(false);
   };
@@ -156,6 +163,14 @@ export default function OnboardingPage() {
           );
         })}
       </div>
+
+      {/* Error Banner */}
+      {stepError && (
+        <div className="bg-danger-light border border-danger/20 text-danger rounded-lg px-4 py-3 text-sm">
+          {stepError}
+          <button className="ml-2 underline text-xs" onClick={() => setStepError(null)}>Dismiss</button>
+        </div>
+      )}
 
       {/* Step Content */}
       {currentStep === 0 && (

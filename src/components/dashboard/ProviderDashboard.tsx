@@ -1,18 +1,17 @@
 "use client";
 
+import Link from "next/link";
 import {
   Calendar,
   UserPlus,
   AlertTriangle,
   TestTube,
   Users,
-  Plus,
   ArrowRight,
   Wrench,
   Activity,
 } from "lucide-react";
 import Card, { CardBody, CardHeader } from "@/components/ui/Card";
-import Button from "@/components/ui/Button";
 import Spinner from "@/components/ui/Spinner";
 import { useProviderStats } from "@/lib/hooks/use-provider-stats";
 import { useOrganization } from "@/lib/hooks/use-organization";
@@ -95,7 +94,7 @@ export default function ProviderDashboard({ userName }: { userName: string }) {
         {statCards.map((stat) => {
           const Icon = stat.icon;
           return (
-            <a key={stat.label} href={stat.href}>
+            <Link key={stat.label} href={stat.href}>
               <Card className="hover:shadow-md transition-shadow cursor-pointer">
                 <CardBody className="flex items-center gap-3 sm:gap-4">
                   <div className={`rounded-lg p-2.5 sm:p-3 ${stat.bg} shrink-0`}>
@@ -113,7 +112,7 @@ export default function ProviderDashboard({ userName }: { userName: string }) {
                   </div>
                 </CardBody>
               </Card>
-            </a>
+            </Link>
           );
         })}
       </div>
@@ -128,7 +127,7 @@ export default function ProviderDashboard({ userName }: { userName: string }) {
             {quickActions.map((action) => {
               const Icon = action.icon;
               return (
-                <a key={action.label} href={action.href}>
+                <Link key={action.label} href={action.href}>
                   <div className="flex flex-col items-center gap-2 p-4 rounded-lg border border-gray-200 hover:border-primary hover:bg-primary-light/50 transition-colors cursor-pointer">
                     <div className="rounded-lg bg-primary-light p-3">
                       <Icon className="h-5 w-5 text-primary" />
@@ -137,7 +136,7 @@ export default function ProviderDashboard({ userName }: { userName: string }) {
                       {action.label}
                     </span>
                   </div>
-                </a>
+                </Link>
               );
             })}
           </div>
@@ -150,12 +149,12 @@ export default function ProviderDashboard({ userName }: { userName: string }) {
         <Card>
           <CardHeader className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-900">Recent Patients</h2>
-            <a
+            <Link
               href="/patients"
               className="text-sm text-primary hover:text-primary-hover font-medium flex items-center gap-1"
             >
               View all <ArrowRight className="h-4 w-4" />
-            </a>
+            </Link>
           </CardHeader>
           <CardBody>
             <p className="text-sm text-gray-500 text-center py-6">
@@ -168,12 +167,12 @@ export default function ProviderDashboard({ userName }: { userName: string }) {
         <Card>
           <CardHeader className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-900">Equipment Alerts</h2>
-            <a
+            <Link
               href="/equipment/alerts"
               className="text-sm text-primary hover:text-primary-hover font-medium flex items-center gap-1"
             >
               View all <ArrowRight className="h-4 w-4" />
-            </a>
+            </Link>
           </CardHeader>
           <CardBody>
             {stats.activeAlerts > 0 ? (

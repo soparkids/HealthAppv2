@@ -208,11 +208,12 @@ export default function CalendarView({
           <div className="px-4 py-3 border-b border-gray-100">
             <h3 className="text-sm font-semibold text-gray-900">
               {selectedDate
-                ? new Date(selectedDate + "T00:00:00").toLocaleDateString("en-US", {
+                ? new Intl.DateTimeFormat("en-US", {
                     weekday: "long",
                     month: "long",
                     day: "numeric",
-                  })
+                    timeZone: "UTC",
+                  }).format(new Date(selectedDate + "T00:00:00Z"))
                 : "Select a day"}
             </h3>
           </div>
