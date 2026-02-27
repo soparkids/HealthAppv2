@@ -71,6 +71,8 @@ const statusFilters: { value: string; label: string }[] = [
 ];
 
 const ITEMS_PER_PAGE = 20;
+// Calendar view needs all appointments to render a complete month
+const CALENDAR_FETCH_LIMIT = 500;
 
 export default function AppointmentsPage() {
   const { orgId, loading: orgLoading } = useOrganization();
@@ -89,9 +91,10 @@ export default function AppointmentsPage() {
     if (!orgId) return;
     setLoading(true);
     try {
+      const isCalendar = viewMode === "calendar";
       const params = new URLSearchParams({
-        page: String(currentPage),
-        limit: String(ITEMS_PER_PAGE),
+        page: isCalendar ? "1" : String(currentPage),
+        limit: isCalendar ? String(CALENDAR_FETCH_LIMIT) : String(ITEMS_PER_PAGE),
       });
       if (statusFilter !== "ALL") {
         params.set("status", statusFilter);
@@ -108,7 +111,7 @@ export default function AppointmentsPage() {
     } finally {
       setLoading(false);
     }
-  }, [orgId, currentPage, statusFilter]);
+  }, [orgId, currentPage, statusFilter, viewMode]);
 
   useEffect(() => {
     fetchAppointments();

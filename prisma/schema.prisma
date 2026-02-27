@@ -54,6 +54,16 @@ enum AppointmentStatus {
   NO_SHOW
 }
 
+enum NotificationType {
+  APPOINTMENT_REMINDER
+  LAB_RESULT_READY
+  EQUIPMENT_ALERT
+  RECORD_SHARED
+  MEMBER_ADDED
+  INTERPRETATION_COMPLETE
+  SYSTEM
+}
+
 model User {
   id              String    @id @default(cuid())
   email           String    @unique
@@ -193,9 +203,9 @@ model Notification {
   organizationId String?
   title          String
   message        String
-  type           String?
+  type           NotificationType?
   link           String?
-  read           Boolean  @default(false)
+  read           Boolean           @default(false)
   createdAt      DateTime @default(now())
 
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
