@@ -61,3 +61,28 @@ export {
   type CreateLabResultInput,
   type UpdatePatientPrefixInput,
 } from "./clinical";
+
+export {
+  createEquipmentSchema,
+  updateEquipmentSchema,
+  createMaintenanceLogSchema,
+  createSensorReadingSchema,
+  batchSensorReadingsSchema,
+  triggerPredictionSchema,
+  updateAlertStatusSchema,
+  importEquipmentRowSchema,
+  equipmentTypeEnum,
+  equipmentStatusEnum,
+  maintenanceTypeEnum,
+  sensorMetricTypeEnum,
+  alertUrgencyEnum,
+  alertStatusEnum,
+  type CreateEquipmentInput,
+  type UpdateEquipmentInput,
+  type CreateMaintenanceLogInput,
+  type CreateSensorReadingInput,
+  type BatchSensorReadingsInput,
+  type TriggerPredictionInput,
+  type UpdateAlertStatusInput,
+  type ImportEquipmentRowInput,
+} from "./equipment";
