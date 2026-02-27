@@ -9,6 +9,8 @@ import {
   ChevronRight,
   Clock,
   Search,
+  List,
+  CalendarDays,
 } from "lucide-react";
 import { useOrganization } from "@/lib/hooks/use-organization";
 import { orgApiFetch } from "@/lib/api";
@@ -18,6 +20,7 @@ import Input from "@/components/ui/Input";
 import Badge from "@/components/ui/Badge";
 import Spinner from "@/components/ui/Spinner";
 import EmptyState from "@/components/ui/EmptyState";
+import CalendarView from "@/components/appointments/CalendarView";
 
 type BadgeVariant = "default" | "primary" | "accent" | "danger" | "warning" | "success";
 
@@ -80,6 +83,7 @@ export default function AppointmentsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
 
   const fetchAppointments = useCallback(async () => {
     if (!orgId) return;
@@ -143,12 +147,35 @@ export default function AppointmentsPage() {
             {total} appointment{total !== 1 ? "s" : ""} found
           </p>
         </div>
-        <Button
-          icon={<Plus className="h-4 w-4" />}
-          onClick={() => router.push("/appointments/new")}
-        >
-          New Appointment
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* View Toggle */}
+          <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
+            <button
+              onClick={() => setViewMode("list")}
+              className={`p-2 rounded-md transition-colors ${
+                viewMode === "list" ? "bg-white shadow-sm text-primary" : "text-gray-500 hover:text-gray-700"
+              }`}
+              title="List view"
+            >
+              <List className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setViewMode("calendar")}
+              className={`p-2 rounded-md transition-colors ${
+                viewMode === "calendar" ? "bg-white shadow-sm text-primary" : "text-gray-500 hover:text-gray-700"
+              }`}
+              title="Calendar view"
+            >
+              <CalendarDays className="h-4 w-4" />
+            </button>
+          </div>
+          <Button
+            icon={<Plus className="h-4 w-4" />}
+            onClick={() => router.push("/appointments/new")}
+          >
+            New Appointment
+          </Button>
+        </div>
       </div>
 
       {/* Status Filter Tabs */}
@@ -183,108 +210,120 @@ export default function AppointmentsPage() {
         </CardBody>
       </Card>
 
-      {/* Table */}
-      {loading ? (
-        <div className="flex justify-center py-12">
-          <Spinner size="lg" />
-        </div>
-      ) : filteredAppointments.length === 0 ? (
-        <EmptyState
-          icon={<Calendar className="h-16 w-16" />}
-          title="No appointments found"
-          description="Try adjusting your filters, or schedule a new appointment."
-          action={
-            <Button
-              icon={<Plus className="h-4 w-4" />}
-              onClick={() => router.push("/appointments/new")}
-            >
-              New Appointment
-            </Button>
-          }
+      {/* Calendar View */}
+      {viewMode === "calendar" && !loading && (
+        <CalendarView
+          appointments={filteredAppointments}
+          onAppointmentClick={(id) => router.push(`/appointments/${id}`)}
         />
-      ) : (
-        <Card>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-100">
-                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Date
-                  </th>
-                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Time
-                  </th>
-                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Patient
-                  </th>
-                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
-                    Doctor
-                  </th>
-                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
-                    Reason
-                  </th>
-                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {filteredAppointments.map((appt) => {
-                  const statusInfo = STATUS_BADGE_MAP[appt.status];
-                  return (
-                    <tr
-                      key={appt.id}
-                      className="hover:bg-gray-50 cursor-pointer transition-colors"
-                      onClick={() => router.push(`/appointments/${appt.id}`)}
-                    >
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-gray-400 shrink-0" />
-                          <span className="text-sm text-gray-900">
-                            {new Date(appt.appointmentDate).toLocaleDateString()}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4 text-gray-400 shrink-0" />
-                          <span className="text-sm text-gray-900">
-                            {appt.appointmentTime}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">
-                            {appt.patient.firstName} {appt.patient.lastName}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {appt.patient.patientNumber}
-                          </p>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-700 hidden md:table-cell">
-                        {appt.doctor}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500 hidden lg:table-cell">
-                        {appt.reason || "-"}
-                      </td>
-                      <td className="px-6 py-4">
-                        <Badge variant={statusInfo.variant}>
-                          {statusInfo.label}
-                        </Badge>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </Card>
       )}
 
-      {/* Pagination */}
-      {totalPages > 1 && (
+      {/* List View */}
+      {viewMode === "list" && (
+        <>
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <Spinner size="lg" />
+            </div>
+          ) : filteredAppointments.length === 0 ? (
+            <EmptyState
+              icon={<Calendar className="h-16 w-16" />}
+              title="No appointments found"
+              description="Try adjusting your filters, or schedule a new appointment."
+              action={
+                <Button
+                  icon={<Plus className="h-4 w-4" />}
+                  onClick={() => router.push("/appointments/new")}
+                >
+                  New Appointment
+                </Button>
+              }
+            />
+          ) : (
+            <Card>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-100">
+                      <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Date
+                      </th>
+                      <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Time
+                      </th>
+                      <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Patient
+                      </th>
+                      <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
+                        Doctor
+                      </th>
+                      <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
+                        Reason
+                      </th>
+                      <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {filteredAppointments.map((appt) => {
+                      const statusInfo = STATUS_BADGE_MAP[appt.status];
+                      return (
+                        <tr
+                          key={appt.id}
+                          className="hover:bg-gray-50 cursor-pointer transition-colors"
+                          onClick={() => router.push(`/appointments/${appt.id}`)}
+                        >
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-4 w-4 text-gray-400 shrink-0" />
+                              <span className="text-sm text-gray-900">
+                                {new Date(appt.appointmentDate).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-4 w-4 text-gray-400 shrink-0" />
+                              <span className="text-sm text-gray-900">
+                                {appt.appointmentTime}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">
+                                {appt.patient.firstName} {appt.patient.lastName}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {appt.patient.patientNumber}
+                              </p>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-700 hidden md:table-cell">
+                            {appt.doctor}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-500 hidden lg:table-cell">
+                            {appt.reason || "-"}
+                          </td>
+                          <td className="px-6 py-4">
+                            <Badge variant={statusInfo.variant}>
+                              {statusInfo.label}
+                            </Badge>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          )}
+        </>
+      )}
+
+      {/* Pagination (list view only) */}
+      {viewMode === "list" && totalPages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-gray-500">
             Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to{" "}
