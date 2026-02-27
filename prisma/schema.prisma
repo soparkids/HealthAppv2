@@ -187,16 +187,26 @@ model Provider {
   organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
 }
 
+enum NotificationType {
+  APPOINTMENT_REMINDER
+  LAB_RESULT_READY
+  EQUIPMENT_ALERT
+  RECORD_SHARED
+  MEMBER_ADDED
+  INTERPRETATION_COMPLETE
+  SYSTEM
+}
+
 model Notification {
-  id             String   @id @default(cuid())
+  id             String            @id @default(cuid())
   userId         String
   organizationId String?
   title          String
   message        String
-  type           String?
+  type           NotificationType?
   link           String?
-  read           Boolean  @default(false)
-  createdAt      DateTime @default(now())
+  read           Boolean           @default(false)
+  createdAt      DateTime          @default(now())
 
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)

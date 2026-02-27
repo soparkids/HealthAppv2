@@ -52,7 +52,13 @@ export default function Header() {
       <div className="flex items-center gap-2 sm:gap-3">
         {/* Mobile search button */}
         <button
-          onClick={() => router.push("/records")}
+          onClick={() => {
+            if (searchQuery.trim()) {
+              router.push(`/records?search=${encodeURIComponent(searchQuery.trim())}`);
+            } else {
+              router.push("/records?search=");
+            }
+          }}
           className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors sm:hidden"
           aria-label="Search"
         >
