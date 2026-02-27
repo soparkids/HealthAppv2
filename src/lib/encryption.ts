@@ -141,3 +141,11 @@ export const SENSITIVE_REPORT_FIELDS = [
   "summary",
   "keyFindings",
 ] as const;
+
+export const SENSITIVE_EQUIPMENT_FIELDS = [
+  "notes",
+] as const;
+
+export const SENSITIVE_PREDICTION_ALERT_FIELDS = [
+  "recommendedAction",
+] as const;
