@@ -86,6 +86,8 @@ export default function AppointmentsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
+  const [calendarAppointments, setCalendarAppointments] = useState<Appointment[]>([]);
+  const [calendarLoading, setCalendarLoading] = useState(false);
 
   const fetchAppointments = useCallback(async () => {
     if (!orgId) return;
@@ -113,9 +115,36 @@ export default function AppointmentsPage() {
     }
   }, [orgId, currentPage, statusFilter, viewMode]);
 
+  // Fetch all appointments for calendar view (up to API max of 100)
+  const fetchCalendarAppointments = useCallback(async () => {
+    if (!orgId) return;
+    setCalendarLoading(true);
+    try {
+      const params = new URLSearchParams({ page: "1", limit: "100" });
+      if (statusFilter !== "ALL") {
+        params.set("status", statusFilter);
+      }
+      const data = await orgApiFetch<AppointmentsResponse>(
+        `/appointments?${params.toString()}`,
+        orgId
+      );
+      setCalendarAppointments(data.appointments);
+    } catch {
+      // silently handle
+    } finally {
+      setCalendarLoading(false);
+    }
+  }, [orgId, statusFilter]);
+
   useEffect(() => {
     fetchAppointments();
   }, [fetchAppointments]);
+
+  useEffect(() => {
+    if (viewMode === "calendar") {
+      fetchCalendarAppointments();
+    }
+  }, [viewMode, fetchCalendarAppointments]);
 
   if (orgLoading || !orgId) {
     return (
@@ -215,13 +244,24 @@ export default function AppointmentsPage() {
 
       {/* Calendar View */}
       {viewMode === "calendar" && (
-        loading ? (
+        calendarLoading ? (
           <div className="flex justify-center py-12">
             <Spinner size="lg" />
           </div>
         ) : (
           <CalendarView
-            appointments={filteredAppointments}
+            appointments={searchQuery
+              ? calendarAppointments.filter((appt) => {
+                  const q = searchQuery.toLowerCase();
+                  const patientName = `${appt.patient.firstName} ${appt.patient.lastName}`.toLowerCase();
+                  return (
+                    patientName.includes(q) ||
+                    appt.doctor.toLowerCase().includes(q) ||
+                    (appt.reason && appt.reason.toLowerCase().includes(q))
+                  );
+                })
+              : calendarAppointments
+            }
             onAppointmentClick={(id) => router.push(`/appointments/${id}`)}
           />
         )

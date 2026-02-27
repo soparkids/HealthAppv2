@@ -51,7 +51,7 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
 
   const filteredItems = navItems.filter((item) => {
     if (item.providerOnly && !(isProvider && hasOrg)) return false;
-    if (item.patientOnly && isProvider && hasOrg) return false;
+    if (item.patientOnly && isProvider) return false;
     return true;
   });
 

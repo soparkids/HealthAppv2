@@ -51,13 +51,17 @@ export default function NotificationBell() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
-  // Generation counter to discard stale poll responses after optimistic updates
-  const fetchGenRef = useRef(0);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchNotifications = useCallback(() => {
-    const gen = ++fetchGenRef.current;
+    // Cancel any in-flight fetch before starting a new one
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     apiFetch<{ notifications: Notification[]; unreadCount: number }>(
       "/notifications?limit=10",
+      { signal: controller.signal }
     )
       .then((data) => {
         // Ignore stale responses if a newer mutation has bumped the generation
@@ -72,15 +76,15 @@ export default function NotificationBell() {
     fetchNotifications();
     // Poll every 60 seconds
     const interval = setInterval(fetchNotifications, 60000);
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      abortControllerRef.current?.abort();
+    };
   }, [fetchNotifications]);
 
   const markAllRead = async () => {
-    // Bump generation so any in-flight or subsequent poll is discarded until fresh fetch
-    fetchGenRef.current++;
-    // Optimistic update first for instant UI feedback
-    setUnreadCount(0);
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    // Cancel any pending fetch to avoid overwriting optimistic update
+    abortControllerRef.current?.abort();
     await apiFetch("/notifications", {
       method: "PATCH",
       body: JSON.stringify({ markAllRead: true }),
@@ -102,11 +106,7 @@ export default function NotificationBell() {
     }
     if (notification.link) {
       setIsOpen(false);
-      if (notification.link.startsWith("/")) {
-        router.push(notification.link);
-      } else {
-        window.location.href = notification.link;
-      }
+      router.push(notification.link);
     }
   };
 
