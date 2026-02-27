@@ -64,6 +64,8 @@ export default function NotificationBell() {
       { signal: controller.signal }
     )
       .then((data) => {
+        // Ignore stale responses if a newer mutation has bumped the generation
+        if (gen !== fetchGenRef.current) return;
         setNotifications(data.notifications);
         setUnreadCount(data.unreadCount);
       })
@@ -87,12 +89,12 @@ export default function NotificationBell() {
       method: "PATCH",
       body: JSON.stringify({ markAllRead: true }),
     }).catch(() => {});
-    setUnreadCount(0);
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   };
 
   const handleClick = (notification: Notification) => {
     if (!notification.read) {
+      // Bump generation to protect optimistic update from stale polls
+      fetchGenRef.current++;
       apiFetch("/notifications", {
         method: "PATCH",
         body: JSON.stringify({ ids: [notification.id] }),

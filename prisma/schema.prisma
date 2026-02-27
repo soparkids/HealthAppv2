@@ -54,6 +54,20 @@ enum AppointmentStatus {
   NO_SHOW
 }
 
+enum NotificationType {
+  APPOINTMENT_REMINDER
+  LAB_RESULT_READY
+  EQUIPMENT_ALERT
+  RECORD_SHARED
+  MEMBER_ADDED
+  INTERPRETATION_COMPLETE
+  SYSTEM
+  REPORT    @map("report")
+  SHARE     @map("share")
+  REMINDER  @map("reminder")
+  FAMILY    @map("family")
+}
+
 model User {
   id              String    @id @default(cuid())
   email           String    @unique

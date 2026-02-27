@@ -71,6 +71,8 @@ const statusFilters: { value: string; label: string }[] = [
 ];
 
 const ITEMS_PER_PAGE = 20;
+// Calendar view needs all appointments to render a complete month
+const CALENDAR_FETCH_LIMIT = 500;
 
 export default function AppointmentsPage() {
   const { orgId, loading: orgLoading } = useOrganization();
@@ -91,9 +93,10 @@ export default function AppointmentsPage() {
     if (!orgId) return;
     setLoading(true);
     try {
+      const isCalendar = viewMode === "calendar";
       const params = new URLSearchParams({
-        page: String(currentPage),
-        limit: String(ITEMS_PER_PAGE),
+        page: isCalendar ? "1" : String(currentPage),
+        limit: isCalendar ? String(CALENDAR_FETCH_LIMIT) : String(ITEMS_PER_PAGE),
       });
       if (statusFilter !== "ALL") {
         params.set("status", statusFilter);
@@ -110,7 +113,7 @@ export default function AppointmentsPage() {
     } finally {
       setLoading(false);
     }
-  }, [orgId, currentPage, statusFilter]);
+  }, [orgId, currentPage, statusFilter, viewMode]);
 
   // Fetch all appointments for calendar view (up to API max of 100)
   const fetchCalendarAppointments = useCallback(async () => {
@@ -324,7 +327,12 @@ export default function AppointmentsPage() {
                             <div className="flex items-center gap-2">
                               <Calendar className="h-4 w-4 text-gray-400 shrink-0" />
                               <span className="text-sm text-gray-900">
-                                {new Date(appt.appointmentDate).toLocaleDateString()}
+                                {new Intl.DateTimeFormat("en-US", {
+                                  year: "numeric",
+                                  month: "short",
+                                  day: "numeric",
+                                  timeZone: "UTC",
+                                }).format(new Date(appt.appointmentDate))}
                               </span>
                             </div>
                           </td>

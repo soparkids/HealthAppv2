@@ -104,6 +104,7 @@ export default function SettingsPage() {
   const [newMemberEmail, setNewMemberEmail] = useState("");
   const [newMemberRole, setNewMemberRole] = useState<OrgRole>("DOCTOR");
   const [addingMember, setAddingMember] = useState(false);
+  const [addMemberError, setAddMemberError] = useState<string | null>(null);
   const [removingMemberId, setRemovingMemberId] = useState<string | null>(null);
   const [editingMember, setEditingMember] = useState<{ id: string; role: OrgRole } | null>(null);
 
@@ -195,7 +196,7 @@ export default function SettingsPage() {
   const handleAddMember = async () => {
     if (!orgId || !newMemberEmail) return;
     setAddingMember(true);
-    setError(null);
+    setAddMemberError(null);
     try {
       await orgApiFetch(`/organizations/${orgId}/members`, orgId, {
         method: "POST",
@@ -204,9 +205,10 @@ export default function SettingsPage() {
       setAddMemberOpen(false);
       setNewMemberEmail("");
       setNewMemberRole("DOCTOR");
+      setAddMemberError(null);
       fetchMembers();
-    } catch {
-      setError("Failed to add member. Check the email address and try again.");
+    } catch (err) {
+      setAddMemberError(err instanceof Error ? err.message : "Failed to add member.");
     } finally {
       setAddingMember(false);
     }
@@ -606,10 +608,15 @@ export default function SettingsPage() {
           {/* Add Member Modal */}
           <Modal
             open={addMemberOpen}
-            onClose={() => setAddMemberOpen(false)}
+            onClose={() => { setAddMemberOpen(false); setAddMemberError(null); }}
             title="Add Team Member"
           >
             <div className="space-y-4">
+              {addMemberError && (
+                <div className="bg-danger-light border border-danger/20 text-danger rounded-lg px-4 py-3 text-sm">
+                  {addMemberError}
+                </div>
+              )}
               <Input
                 label="Email Address"
                 type="email"
@@ -633,8 +640,11 @@ export default function SettingsPage() {
                   ))}
                 </select>
               </div>
+              <p className="text-xs text-gray-500">
+                The person must already have an NdụMed account before you can add them.
+              </p>
               <div className="flex justify-end gap-2 pt-2">
-                <Button variant="outline" onClick={() => setAddMemberOpen(false)}>
+                <Button variant="outline" onClick={() => { setAddMemberOpen(false); setAddMemberError(null); }}>
                   Cancel
                 </Button>
                 <Button
