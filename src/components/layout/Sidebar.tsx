@@ -15,6 +15,7 @@ import {
   Eye,
   ClipboardList,
   Settings,
+  Wrench,
 } from "lucide-react";
 
 const navItems = [
@@ -23,6 +24,7 @@ const navItems = [
   { href: "/appointments", label: "Appointments", icon: Calendar },
   { href: "/lab-results", label: "Lab Results", icon: TestTube },
   { href: "/eye-consultations", label: "Eye Consult", icon: Eye },
+  { href: "/equipment", label: "Equipment", icon: Wrench },
   { href: "/records", label: "Records", icon: FolderOpen },
   { href: "/care", label: "Care", icon: HeartPulse },
   { href: "/family", label: "Family", icon: Users },

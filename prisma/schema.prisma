@@ -223,6 +223,10 @@ model Organization {
   eyeConsultations EyeConsultation[]
   medicalHistories MedicalHistory[]
   labResults       LabResult[]
+  equipment        Equipment[]
+  maintenanceLogs  MaintenanceLog[]
+  sensorReadings   SensorReading[]
+  predictionAlerts PredictionAlert[]
 }
 
 model OrganizationFeature {
@@ -393,6 +397,57 @@ model MedicalHistory {
   @@index([createdAt])
 }
 
+// ─── Equipment Predictive Maintenance Enums ─────────────────
+
+enum EquipmentType {
+  MRI
+  XRAY
+  CT_SCANNER
+  ULTRASOUND
+  VENTILATOR
+  PATIENT_MONITOR
+  INFUSION_PUMP
+  DEFIBRILLATOR
+  OTHER
+}
+
+enum EquipmentStatus {
+  ACTIVE
+  INACTIVE
+  UNDER_MAINTENANCE
+  DECOMMISSIONED
+}
+
+enum MaintenanceType {
+  PREVENTIVE
+  CORRECTIVE
+  CALIBRATION
+  INSPECTION
+  PART_REPLACEMENT
+}
+
+enum SensorMetricType {
+  USAGE_HOURS
+  ERROR_COUNT
+  TEMPERATURE
+  VIBRATION
+  POWER_CYCLES
+}
+
+enum AlertUrgency {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum AlertStatus {
+  ACTIVE
+  ACKNOWLEDGED
+  RESOLVED
+  DISMISSED
+}
+
 enum InterpretationStatus {
   PENDING
   PROCESSING
@@ -452,6 +507,105 @@ model LabInterpretation {
   labResult LabResult @relation(fields: [labResultId], references: [id], onDelete: Cascade)
 
   @@index([labResultId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ─── Equipment Predictive Maintenance Models ─────────────────
+
+model Equipment {
+  id              String          @id @default(cuid())
+  organizationId  String
+  name            String
+  type            EquipmentType   @default(OTHER)
+  serialNumber    String
+  manufacturer    String?
+  model           String?
+  installDate     DateTime?
+  warrantyExpiry  DateTime?
+  location        String?
+  status          EquipmentStatus @default(ACTIVE)
+  notes           String?
+  createdById     String
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  organization     Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  maintenanceLogs  MaintenanceLog[]
+  sensorReadings   SensorReading[]
+  predictionAlerts PredictionAlert[]
+
+  @@unique([organizationId, serialNumber])
+  @@index([organizationId])
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model MaintenanceLog {
+  id                String          @id @default(cuid())
+  equipmentId       String
+  organizationId    String
+  type              MaintenanceType
+  description       String
+  performedBy       String
+  cost              Float?
+  partsReplaced     String?
+  nextScheduledDate DateTime?
+  createdById       String
+  createdAt         DateTime        @default(now())
+
+  equipment    Equipment    @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([equipmentId])
+  @@index([organizationId])
+  @@index([createdAt])
+}
+
+model SensorReading {
+  id             String           @id @default(cuid())
+  equipmentId    String
+  organizationId String
+  metricType     SensorMetricType
+  value          Float
+  unit           String?
+  timestamp      DateTime         @default(now())
+  createdAt      DateTime         @default(now())
+
+  equipment    Equipment    @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([equipmentId])
+  @@index([organizationId])
+  @@index([metricType])
+  @@index([timestamp])
+}
+
+model PredictionAlert {
+  id                   String       @id @default(cuid())
+  equipmentId          String
+  organizationId       String
+  riskScore            Float
+  predictedFailureDate DateTime?
+  recommendedAction    String
+  urgency              AlertUrgency
+  status               AlertStatus  @default(ACTIVE)
+  aiProvider           String?
+  aiModel              String?
+  tokensUsed           Int?
+  latencyMs            Int?
+  createdById          String
+  resolvedAt           DateTime?
+  resolvedById         String?
+  createdAt            DateTime     @default(now())
+
+  equipment    Equipment    @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([equipmentId])
+  @@index([organizationId])
+  @@index([urgency])
   @@index([status])
   @@index([createdAt])
 }

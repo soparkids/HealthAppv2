@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withAuth } from "@/lib/org-auth";
 import { logAudit, getClientIp } from "@/lib/audit";
+import { decryptFields, SENSITIVE_REPORT_FIELDS } from "@/lib/encryption";
 
 export async function GET(
   _request: NextRequest,
@@ -25,7 +26,12 @@ export async function GET(
     return NextResponse.json({ error: "Record not found" }, { status: 404 });
   }
 
-  return NextResponse.json(record);
+  // Decrypt sensitive report fields if a report is attached
+  const result = record.report
+    ? { ...record, report: decryptFields(record.report, [...SENSITIVE_REPORT_FIELDS]) }
+    : record;
+
+  return NextResponse.json(result);
 }
 
 export async function PUT(
