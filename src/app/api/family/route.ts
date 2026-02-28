@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { requireFeature } from "@/lib/features";
+import { sendFamilyConsentEmail } from "@/lib/email";
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -93,6 +94,17 @@ export async function POST(request: NextRequest) {
       },
     },
   });
+
+  // Notify the family member via email (non-blocking)
+  try {
+    await sendFamilyConsentEmail(
+      memberUser.email,
+      memberUser.name,
+      session.user.name
+    );
+  } catch (emailError) {
+    console.error("Failed to send family consent email:", emailError);
+  }
 
   return NextResponse.json(familyMember, { status: 201 });
 }

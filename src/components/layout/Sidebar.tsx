@@ -20,6 +20,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useSidebar } from "./SidebarContext";
+import OrgSwitcher from "./OrgSwitcher";
 
 interface NavItem {
   href: string;
@@ -90,10 +91,11 @@ export default function Sidebar() {
       {/* Desktop sidebar */}
       <aside className="w-64 bg-white border-r border-gray-200 h-[calc(100vh-64px)] sticky top-16 shrink-0 hidden lg:block">
         <div className="p-4">
-          <div className="flex items-center gap-2 px-3 py-2 mb-6">
+          <div className="flex items-center gap-2 px-3 py-2 mb-4">
             <Activity className="h-7 w-7 text-primary" />
             <span className="text-xl font-bold text-gray-900">NdụMed</span>
           </div>
+          <OrgSwitcher />
           <NavLinks />
         </div>
       </aside>
@@ -115,7 +117,7 @@ export default function Sidebar() {
             aria-label="Navigation menu"
           >
             <div className="p-4">
-              <div className="flex items-center justify-between px-3 py-2 mb-6">
+              <div className="flex items-center justify-between px-3 py-2 mb-4">
                 <div className="flex items-center gap-2">
                   <Activity className="h-7 w-7 text-primary" />
                   <span className="text-xl font-bold text-gray-900">NdụMed</span>
@@ -128,6 +130,7 @@ export default function Sidebar() {
                   <X className="h-5 w-5" />
                 </button>
               </div>
+              <OrgSwitcher />
               <NavLinks onNavigate={close} />
             </div>
           </aside>

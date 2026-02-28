@@ -18,6 +18,37 @@ function getBaseUrl(): string {
   return process.env.NEXTAUTH_URL || "http://localhost:3000";
 }
 
+export async function sendFamilyConsentEmail(
+  to: string,
+  memberName: string | null | undefined,
+  requesterName: string | null | undefined
+): Promise<void> {
+  const appUrl = getBaseUrl();
+  const greeting = memberName ? `Hi ${memberName}` : "Hi";
+  const sender = requesterName || "Someone";
+
+  await transporter.sendMail({
+    from: `"${APP_NAME}" <${FROM_ADDRESS}>`,
+    to,
+    subject: `${sender} added you as a family member on ${APP_NAME}`,
+    html: `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #1a1a1a;">${APP_NAME}</h2>
+        <p>${greeting},</p>
+        <p><strong>${sender}</strong> has added you as a family member on ${APP_NAME} and may request to share medical records with you.</p>
+        <p>Log in to your ${APP_NAME} account to review this connection and manage your consent settings.</p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${appUrl}/family" style="background-color: #2563eb; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+            Manage Family Settings
+          </a>
+        </div>
+        <p style="color: #999; font-size: 12px;">Don't have an account? Register at <a href="${appUrl}">${appUrl}</a>.</p>
+      </div>
+    `,
+    text: `${greeting},\n\n${sender} has added you as a family member on ${APP_NAME}.\n\nManage your settings: ${appUrl}/family`,
+  });
+}
+
 export async function sendVerificationEmail(
   to: string,
   token: string,

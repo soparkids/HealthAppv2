@@ -75,7 +75,7 @@ export default withAuth(
       if (rateLimitResponse) return rateLimitResponse;
     }
 
-    // Provider-only routes
+    // Provider-only routes (legacy /provider/* prefix)
     if (pathname.startsWith("/provider") && token?.role !== "PROVIDER" && token?.role !== "ADMIN") {
       return NextResponse.redirect(new URL("/dashboard", req.url));
     }
@@ -87,6 +87,22 @@ export default withAuth(
 
     // Organization creation — only PROVIDER and ADMIN can access
     if (pathname.includes("/settings/create-org") && token?.role !== "PROVIDER" && token?.role !== "ADMIN") {
+      return NextResponse.redirect(new URL("/dashboard", req.url));
+    }
+
+    // Clinical pages — patients cannot access hospital staff pages
+    const CLINICAL_PREFIXES = [
+      "/patients",
+      "/appointments",
+      "/lab-results",
+      "/equipment",
+      "/eye-consultations",
+      "/medical-history",
+      "/onboarding",
+      "/providers",
+    ];
+    const isClinicaPath = CLINICAL_PREFIXES.some((p) => pathname.startsWith(p));
+    if (isClinicaPath && token?.role !== "PROVIDER" && token?.role !== "ADMIN") {
       return NextResponse.redirect(new URL("/dashboard", req.url));
     }
 
@@ -113,6 +129,17 @@ export const config = {
     "/family/:path*",
     "/provider/:path*",
     "/admin/:path*",
+    "/patients/:path*",
+    "/appointments/:path*",
+    "/lab-results/:path*",
+    "/equipment/:path*",
+    "/eye-consultations/:path*",
+    "/medical-history/:path*",
+    "/onboarding/:path*",
+    "/providers/:path*",
+    "/profile/:path*",
+    "/settings/:path*",
+    "/my-results/:path*",
     "/api/((?!auth|shared).*)/:path*",
   ],
 };
