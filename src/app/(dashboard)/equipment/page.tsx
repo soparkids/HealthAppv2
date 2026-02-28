@@ -11,6 +11,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { useOrganization } from "@/lib/hooks/use-organization";
+import { useRequireProviderRole } from "@/lib/hooks/use-require-role";
 import { orgApiFetch } from "@/lib/api";
 import { useDebounce } from "@/lib/hooks/use-debounce";
 import Card, { CardBody } from "@/components/ui/Card";
@@ -66,6 +67,7 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 export default function EquipmentPage() {
+  const { allowed, loading: roleLoading } = useRequireProviderRole();
   const { orgId, loading: orgLoading } = useOrganization();
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -112,7 +114,7 @@ export default function EquipmentPage() {
     setCurrentPage(1);
   }, [debouncedSearch, typeFilter, statusFilter]);
 
-  if (orgLoading || !orgId) {
+  if (roleLoading || !allowed || orgLoading || !orgId) {
     return (
       <div className="flex justify-center py-16">
         <Spinner size="lg" />

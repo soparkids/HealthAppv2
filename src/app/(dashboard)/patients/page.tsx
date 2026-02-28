@@ -9,6 +9,7 @@ import {
   Users,
 } from "lucide-react";
 import { useOrganization } from "@/lib/hooks/use-organization";
+import { useRequireProviderRole } from "@/lib/hooks/use-require-role";
 import { orgApiFetch } from "@/lib/api";
 import { useDebounce } from "@/lib/hooks/use-debounce";
 import Card, { CardBody } from "@/components/ui/Card";
@@ -52,6 +53,7 @@ const GENDER_BADGE: Record<string, { label: string; variant: "primary" | "accent
 };
 
 export default function PatientsPage() {
+  const { allowed, loading: roleLoading } = useRequireProviderRole();
   const { orgId, loading: orgLoading } = useOrganization();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
@@ -96,7 +98,7 @@ export default function PatientsPage() {
     setCurrentPage(1);
   }, [debouncedSearch]);
 
-  if (orgLoading || !orgId) {
+  if (roleLoading || !allowed || orgLoading || !orgId) {
     return (
       <div className="flex justify-center py-16">
         <Spinner size="lg" />

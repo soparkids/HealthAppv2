@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { useOrganization } from "@/lib/hooks/use-organization";
+import { useRequireProviderRole } from "@/lib/hooks/use-require-role";
 import { orgApiFetch } from "@/lib/api";
 import Card, { CardBody, CardHeader } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
@@ -79,6 +80,7 @@ const EXAM_FIELDS = [
 ] as const;
 
 export default function EyeConsultationsPage() {
+  const { allowed, loading: roleLoading } = useRequireProviderRole();
   const { orgId, loading: orgLoading } = useOrganization();
 
   const [consultations, setConsultations] = useState<Consultation[]>([]);
@@ -115,7 +117,7 @@ export default function EyeConsultationsPage() {
     fetchConsultations();
   }, [fetchConsultations]);
 
-  if (orgLoading || !orgId) {
+  if (roleLoading || !allowed || orgLoading || !orgId) {
     return (
       <div className="flex justify-center py-16">
         <Spinner size="lg" />

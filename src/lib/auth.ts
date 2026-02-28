@@ -1,6 +1,7 @@
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
+import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { loginSchema } from "@/lib/validations/auth";
 import { checkRateLimit, clearRateLimit, AUTH_RATE_LIMIT } from "@/lib/rate-limit";
@@ -99,6 +100,24 @@ export const authOptions: NextAuthOptions = {
         });
         token.activeOrganizationId = membership?.organizationId || null;
       }
+
+      // Check if user requested an org switch via the preferred-org cookie
+      try {
+        const cookieStore = await cookies();
+        const preferredOrg = cookieStore.get("preferred-org");
+        if (preferredOrg?.value && preferredOrg.value !== token.activeOrganizationId) {
+          // Verify membership before accepting
+          const membership = await prisma.organizationMember.findFirst({
+            where: { userId: token.id as string, organizationId: preferredOrg.value },
+          });
+          if (membership) {
+            token.activeOrganizationId = preferredOrg.value;
+          }
+        }
+      } catch {
+        // cookies() may throw in some contexts (e.g., edge runtime) — ignore
+      }
+
       return token;
     },
     async session({ session, token }) {

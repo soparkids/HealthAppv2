@@ -13,6 +13,7 @@ import {
   CalendarDays,
 } from "lucide-react";
 import { useOrganization } from "@/lib/hooks/use-organization";
+import { useRequireProviderRole } from "@/lib/hooks/use-require-role";
 import { orgApiFetch } from "@/lib/api";
 import Card, { CardBody } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
@@ -73,6 +74,7 @@ const statusFilters: { value: string; label: string }[] = [
 const ITEMS_PER_PAGE = 20;
 
 export default function AppointmentsPage() {
+  const { allowed, loading: roleLoading } = useRequireProviderRole();
   const { orgId, loading: orgLoading } = useOrganization();
   const router = useRouter();
 
@@ -143,7 +145,7 @@ export default function AppointmentsPage() {
     }
   }, [viewMode, fetchCalendarAppointments]);
 
-  if (orgLoading || !orgId) {
+  if (roleLoading || !allowed || orgLoading || !orgId) {
     return (
       <div className="flex justify-center py-16">
         <Spinner size="lg" />

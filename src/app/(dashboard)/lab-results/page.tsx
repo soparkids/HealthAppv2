@@ -12,6 +12,7 @@ import {
   Calendar,
 } from "lucide-react";
 import { useOrganization } from "@/lib/hooks/use-organization";
+import { useRequireProviderRole } from "@/lib/hooks/use-require-role";
 import { orgApiFetch } from "@/lib/api";
 import Card, { CardBody } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
@@ -68,6 +69,7 @@ const RISK_LEVEL_BADGE_MAP: Record<string, { label: string; variant: BadgeVarian
 const ITEMS_PER_PAGE = 20;
 
 export default function LabResultsPage() {
+  const { allowed, loading: roleLoading } = useRequireProviderRole();
   const { orgId, loading: orgLoading } = useOrganization();
   const router = useRouter();
 
@@ -104,7 +106,7 @@ export default function LabResultsPage() {
     fetchResults();
   }, [fetchResults]);
 
-  if (orgLoading || !orgId) {
+  if (roleLoading || !allowed || orgLoading || !orgId) {
     return (
       <div className="flex justify-center py-16">
         <Spinner size="lg" />
