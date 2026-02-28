@@ -4,6 +4,7 @@ type AuditAction =
   | "LOGIN"
   | "LOGOUT"
   | "REGISTER"
+  | "EMAIL_VERIFIED"
   | "PASSWORD_CHANGE"
   | "CREATE_RECORD"
   | "UPDATE_RECORD"

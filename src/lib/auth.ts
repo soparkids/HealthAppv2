@@ -52,6 +52,13 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
+        // Block unverified users
+        if (!user.emailVerified) {
+          throw new Error(
+            "Please verify your email before signing in. Check your inbox for the verification link."
+          );
+        }
+
         clearRateLimit(rateLimitKey);
 
         // If MFA is enabled, return user with mfaPending flag for frontend to handle
