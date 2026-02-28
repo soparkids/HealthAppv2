@@ -15,7 +15,7 @@ export async function GET(request: Request) {
 
   const url = new URL(request.url);
   const page = Math.max(1, parseInt(url.searchParams.get("page") || "1"));
-  const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get("limit") || "20")));
+  const limit = Math.min(500, Math.max(1, parseInt(url.searchParams.get("limit") || "20")));
   const patientId = url.searchParams.get("patientId");
   const status = url.searchParams.get("status");
 

@@ -76,15 +76,27 @@ export default function NotificationBell() {
   }, [fetchNotifications]);
 
   const markAllRead = async () => {
+    // Preserve previous state in case we need to roll back on error
+    const prevNotifications = notifications;
+    const prevUnreadCount = unreadCount;
     // Bump generation so any in-flight or subsequent poll is discarded until fresh fetch
     fetchGenRef.current++;
     // Optimistic update first for instant UI feedback
     setUnreadCount(0);
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-    await apiFetch("/notifications", {
-      method: "PATCH",
-      body: JSON.stringify({ markAllRead: true }),
-    }).catch(() => {});
+    try {
+      await apiFetch("/notifications", {
+        method: "PATCH",
+        body: JSON.stringify({ markAllRead: true }),
+      });
+    } catch {
+      // Roll back to previous state if the request fails
+      setUnreadCount(prevUnreadCount);
+      setNotifications(prevNotifications);
+    } finally {
+      // Ensure we refresh from the server so UI matches authoritative state
+      fetchNotifications();
+    }
   };
 
   const handleClick = (notification: Notification) => {

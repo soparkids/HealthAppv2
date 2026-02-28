@@ -62,6 +62,10 @@ enum NotificationType {
   MEMBER_ADDED
   INTERPRETATION_COMPLETE
   SYSTEM
+  REPORT    @map("report")
+  SHARE     @map("share")
+  REMINDER  @map("reminder")
+  FAMILY    @map("family")
 }
 
 model User {
