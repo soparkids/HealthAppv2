@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { registerSchema } from "@/lib/validations/auth";
 import { checkRateLimit, AUTH_RATE_LIMIT } from "@/lib/rate-limit";
 import { logAudit, getClientIp } from "@/lib/audit";
-import { sendVerificationEmail } from "@/lib/email";
+import { sendVerificationEmail, isSmtpConfigured } from "@/lib/email";
 
 export async function POST(request: Request) {
   try {
@@ -42,8 +42,9 @@ export async function POST(request: Request) {
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
-    const verificationToken = crypto.randomBytes(32).toString("hex");
-    const verificationExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const smtpReady = isSmtpConfigured();
+    const verificationToken = smtpReady ? crypto.randomBytes(32).toString("hex") : null;
+    const verificationExpiry = smtpReady ? new Date(Date.now() + 24 * 60 * 60 * 1000) : null;
 
     const user = await prisma.user.create({
       data: {
@@ -51,6 +52,7 @@ export async function POST(request: Request) {
         email,
         password: hashedPassword,
         role,
+        emailVerified: !smtpReady, // Auto-verify if no SMTP configured
         emailVerificationToken: verificationToken,
         emailVerificationExpiry: verificationExpiry,
       },
@@ -72,18 +74,22 @@ export async function POST(request: Request) {
       ipAddress: ip,
     });
 
-    // Send verification email (non-blocking — don't fail registration if email fails)
-    try {
-      await sendVerificationEmail(user.email, verificationToken, user.name);
-    } catch (emailErr) {
-      console.warn("Failed to send verification email on registration:", emailErr);
+    // Send verification email if SMTP is configured
+    if (smtpReady && verificationToken) {
+      try {
+        await sendVerificationEmail(user.email, verificationToken, user.name);
+      } catch (emailErr) {
+        console.warn("Failed to send verification email on registration:", emailErr);
+      }
     }
 
-    return NextResponse.json(
-      { message: "Account created successfully. Please check your email to verify your account.", user },
-      { status: 201 }
-    );
-  } catch {
+    const message = smtpReady
+      ? "Account created successfully. Please check your email to verify your account."
+      : "Account created successfully.";
+
+    return NextResponse.json({ message, user }, { status: 201 });
+  } catch (err) {
+    console.error("Registration error:", err);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

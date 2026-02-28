@@ -1,18 +1,27 @@
 import nodemailer from "nodemailer";
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || "smtp.gmail.com",
-  port: Number(process.env.SMTP_PORT) || 587,
-  secure: false,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASSWORD,
-  },
-});
+function isSmtpConfigured(): boolean {
+  return !!(process.env.SMTP_USER && process.env.SMTP_PASSWORD);
+}
+
+function getTransporter() {
+  if (!isSmtpConfigured()) return null;
+  return nodemailer.createTransport({
+    host: process.env.SMTP_HOST || "smtp.gmail.com",
+    port: Number(process.env.SMTP_PORT) || 587,
+    secure: false,
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASSWORD,
+    },
+  });
+}
 
 const FROM_ADDRESS =
   process.env.EMAIL_FROM || process.env.SMTP_USER || "noreply@ndumed.com";
 const APP_NAME = "NdụMed";
+
+export { isSmtpConfigured };
 
 function getBaseUrl(): string {
   return process.env.NEXTAUTH_URL || "http://localhost:3000";
@@ -34,6 +43,12 @@ export async function sendFamilyConsentEmail(
   const rejectUrl = consentToken
     ? `${appUrl}/family/consent?token=${consentToken}&action=reject`
     : `${appUrl}/family`;
+
+  const transporter = getTransporter();
+  if (!transporter) {
+    console.warn("SMTP not configured — skipping family consent email");
+    return;
+  }
 
   await transporter.sendMail({
     from: `"${APP_NAME}" <${FROM_ADDRESS}>`,
@@ -68,6 +83,12 @@ export async function sendVerificationEmail(
 ): Promise<void> {
   const verifyUrl = `${getBaseUrl()}/verify-email?token=${token}`;
   const greeting = name ? `Hi ${name}` : "Hi";
+
+  const transporter = getTransporter();
+  if (!transporter) {
+    console.warn("SMTP not configured — skipping verification email");
+    return;
+  }
 
   await transporter.sendMail({
     from: `"${APP_NAME}" <${FROM_ADDRESS}>`,
