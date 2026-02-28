@@ -15,6 +15,7 @@ import Card, { CardBody, CardHeader } from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Spinner from "@/components/ui/Spinner";
+import ProviderDashboard from "@/components/dashboard/ProviderDashboard";
 import { useRecords } from "@/lib/hooks/use-records";
 import { useFollowUps } from "@/lib/hooks/use-follow-ups";
 import { useDashboardStats } from "@/lib/hooks/use-dashboard-stats";
@@ -24,11 +25,25 @@ type BadgeVariant = "default" | "primary" | "accent" | "danger" | "warning" | "s
 
 export default function DashboardPage() {
   const { data: session } = useSession();
+
+  const userName = session?.user?.name?.split(" ")[0] || "there";
+  const userRole = session?.user?.role;
+  const hasOrg = !!session?.user?.activeOrganizationId;
+
+  // Show provider dashboard for PROVIDER role with an active org
+  if (userRole === "PROVIDER" && hasOrg) {
+    return <ProviderDashboard userName={userName} />;
+  }
+
+  // Patient dashboard (default)
+  return <PatientDashboard userName={userName} />;
+}
+
+function PatientDashboard({ userName }: { userName: string }) {
   const { data: stats, loading: statsLoading } = useDashboardStats();
   const { data: recordsData, loading: recordsLoading } = useRecords({ limit: 6 });
   const { data: followUps, loading: followUpsLoading } = useFollowUps();
 
-  const userName = session?.user?.name?.split(" ")[0] || "there";
   const recentRecords = recordsData?.records || [];
   const upcomingFollowUps = followUps
     .filter((f) => f.status === "PENDING" || f.status === "SCHEDULED")
@@ -104,24 +119,24 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((stat) => {
           const Icon = stat.icon;
           return (
             <Card key={stat.label}>
-              <CardBody className="flex items-center gap-4">
-                <div className={`rounded-lg p-3 ${stat.bg}`}>
-                  <Icon className={`h-6 w-6 ${stat.color}`} />
+              <CardBody className="flex items-center gap-3 sm:gap-4">
+                <div className={`rounded-lg p-2.5 sm:p-3 ${stat.bg} shrink-0`}>
+                  <Icon className={`h-5 w-5 sm:h-6 sm:w-6 ${stat.color}`} />
                 </div>
-                <div>
+                <div className="min-w-0">
                   {statsLoading ? (
                     <Spinner size="sm" />
                   ) : (
-                    <p className="text-2xl font-bold text-gray-900">
+                    <p className="text-xl sm:text-2xl font-bold text-gray-900">
                       {stat.value}
                     </p>
                   )}
-                  <p className="text-sm text-gray-500">{stat.label}</p>
+                  <p className="text-xs sm:text-sm text-gray-500 truncate">{stat.label}</p>
                 </div>
               </CardBody>
             </Card>

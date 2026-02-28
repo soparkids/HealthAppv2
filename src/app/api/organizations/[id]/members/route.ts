@@ -10,18 +10,20 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+
+  // Read body first before consuming the stream
+  const body = await request.json();
+
   const headers = new Headers(request.headers);
   headers.set("x-organization-id", id);
   const modifiedRequest = new Request(request.url, {
     headers,
     method: request.method,
-    body: request.body,
+    body: JSON.stringify(body),
   });
 
   const auth = await withOrgAuth(modifiedRequest, ["OWNER", "ADMIN"]);
   if (auth instanceof NextResponse) return auth;
-
-  const body = await request.json();
   const parsed = addMemberSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
