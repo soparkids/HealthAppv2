@@ -137,17 +137,21 @@ model SharedRecord {
 }
 
 model FamilyMember {
-  id           String   @id @default(cuid())
-  userId       String
-  memberUserId String
-  relationship String
-  consentGiven Boolean  @default(false)
-  createdAt    DateTime @default(now())
+  id                String    @id @default(cuid())
+  userId            String
+  memberUserId      String
+  relationship      String
+  consentGiven      Boolean   @default(false)
+  consentToken      String?   @unique
+  consentTokenExpiry DateTime?
+  consentRespondedAt DateTime?
+  createdAt         DateTime  @default(now())
 
   user   User @relation("UserFamilyMembers", fields: [userId], references: [id], onDelete: Cascade)
   member User @relation("MemberOfFamily", fields: [memberUserId], references: [id], onDelete: Cascade)
 
   @@unique([userId, memberUserId])
+  @@index([consentToken])
 }
 
 model FollowUp {

@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { requireFeature } from "@/lib/features";
+import { sendFamilyConsentEmail } from "@/lib/email";
+import crypto from "crypto";
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -12,7 +14,8 @@ export async function GET(request: NextRequest) {
 
   // Allow reading existing family members even if feature is disabled (only block writes)
 
-  const familyMembers = await prisma.familyMember.findMany({
+  // Get family members the user added
+  const addedMembers = await prisma.familyMember.findMany({
     where: { userId: session.user.id },
     include: {
       member: {
@@ -22,7 +25,24 @@ export async function GET(request: NextRequest) {
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json(familyMembers);
+  // Get pending consent requests FOR the current user (they were added by someone else)
+  const pendingRequests = await prisma.familyMember.findMany({
+    where: {
+      memberUserId: session.user.id,
+      consentRespondedAt: null,
+    },
+    include: {
+      user: {
+        select: { id: true, name: true, email: true, avatar: true },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return NextResponse.json({
+    members: addedMembers,
+    pendingRequests,
+  });
 }
 
 export async function POST(request: NextRequest) {
@@ -81,11 +101,17 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Generate consent token (expires in 7 days)
+  const consentToken = crypto.randomBytes(32).toString("hex");
+  const consentTokenExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
   const familyMember = await prisma.familyMember.create({
     data: {
       userId: session.user.id,
       memberUserId: memberUser.id,
       relationship,
+      consentToken,
+      consentTokenExpiry,
     },
     include: {
       member: {
@@ -93,6 +119,18 @@ export async function POST(request: NextRequest) {
       },
     },
   });
+
+  // Send consent email with accept/reject links (non-blocking)
+  try {
+    await sendFamilyConsentEmail(
+      memberUser.email,
+      memberUser.name,
+      session.user.name,
+      consentToken
+    );
+  } catch (emailError) {
+    console.error("Failed to send family consent email:", emailError);
+  }
 
   return NextResponse.json(familyMember, { status: 201 });
 }

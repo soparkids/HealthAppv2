@@ -8,6 +8,9 @@ import {
   X,
   Loader2,
   ChevronRight,
+  CheckCircle,
+  XCircle,
+  Bell,
 } from "lucide-react";
 
 interface FamilyMember {
@@ -22,8 +25,21 @@ interface FamilyMember {
   };
 }
 
+interface PendingRequest {
+  id: string;
+  relationship: string;
+  consentGiven: boolean;
+  user: {
+    id: string;
+    name: string | null;
+    email: string;
+    avatar: string | null;
+  };
+}
+
 export default function FamilyPage() {
   const [members, setMembers] = useState<FamilyMember[]>([]);
+  const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [email, setEmail] = useState("");
@@ -31,6 +47,7 @@ export default function FamilyPage() {
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [respondingTo, setRespondingTo] = useState<string | null>(null);
 
   async function fetchMembers() {
     try {
@@ -38,7 +55,8 @@ export default function FamilyPage() {
       const res = await fetch("/api/family");
       if (res.ok) {
         const data = await res.json();
-        setMembers(data);
+        setMembers(data.members || data);
+        setPendingRequests(data.pendingRequests || []);
       } else {
         const data = await res.json().catch(() => ({}));
         setFetchError(data.error || "Failed to load family members");
@@ -78,6 +96,23 @@ export default function FamilyPage() {
       }
     } finally {
       setAdding(false);
+    }
+  }
+
+  async function handleConsentResponse(requestId: string, action: "accept" | "reject") {
+    setRespondingTo(requestId);
+    try {
+      const res = await fetch("/api/family/consent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ familyMemberId: requestId, action }),
+      });
+
+      if (res.ok) {
+        fetchMembers();
+      }
+    } finally {
+      setRespondingTo(null);
     }
   }
 
@@ -121,6 +156,56 @@ export default function FamilyPage() {
           Add Family Member
         </button>
       </div>
+
+      {/* Pending Consent Requests */}
+      {pendingRequests.length > 0 && (
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Bell className="w-5 h-5 text-yellow-500" />
+            <h2 className="font-semibold text-gray-900">
+              Pending Requests ({pendingRequests.length})
+            </h2>
+          </div>
+          <div className="space-y-3">
+            {pendingRequests.map((req) => (
+              <div
+                key={req.id}
+                className="flex items-center gap-4 bg-yellow-50 rounded-xl border border-yellow-200 p-4"
+              >
+                <div className="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-700 font-semibold">
+                  {getInitials(req.user.name, req.user.email)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-gray-900">
+                    {req.user.name || req.user.email}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    wants to add you as <strong>{req.relationship}</strong> and share medical records
+                  </p>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <button
+                    onClick={() => handleConsentResponse(req.id, "accept")}
+                    disabled={respondingTo === req.id}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 disabled:opacity-50"
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    Accept
+                  </button>
+                  <button
+                    onClick={() => handleConsentResponse(req.id, "reject")}
+                    disabled={respondingTo === req.id}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 disabled:opacity-50"
+                  >
+                    <XCircle className="w-4 h-4" />
+                    Decline
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {showAddForm && (
         <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
@@ -186,6 +271,8 @@ export default function FamilyPage() {
         </div>
       )}
 
+      {/* My Family Members */}
+      <h2 className="font-semibold text-gray-900 mb-3">My Family Members</h2>
       {members.length > 0 ? (
         <div className="space-y-3">
           {members.map((fm) => (

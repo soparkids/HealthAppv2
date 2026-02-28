@@ -23,6 +23,7 @@ export async function GET(
           name: true,
           email: true,
           avatar: true,
+          // Only include medical records if consent has been given
           medicalRecords: {
             select: {
               id: true,
@@ -40,6 +41,18 @@ export async function GET(
 
   if (!familyMember) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  // Block medical records access if consent not given
+  if (!familyMember.consentGiven) {
+    return NextResponse.json({
+      ...familyMember,
+      member: {
+        ...familyMember.member,
+        medicalRecords: [],
+      },
+      consentPending: true,
+    });
   }
 
   return NextResponse.json(familyMember);
@@ -68,7 +81,7 @@ export async function PUT(
   const updateData: Record<string, unknown> = {};
 
   if (body.relationship !== undefined) updateData.relationship = body.relationship;
-  if (body.consentGiven !== undefined) updateData.consentGiven = body.consentGiven;
+  // consentGiven can only be changed by the member via /api/family/consent — not by the adder
 
   const familyMember = await prisma.familyMember.update({
     where: { id },
