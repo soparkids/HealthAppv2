@@ -64,6 +64,20 @@ if (typeof setInterval !== "undefined") {
   }, 60 * 1000);
 }
 
+// Routes only accessible to provider roles (not patients)
+const PROVIDER_ONLY_ROUTES = [
+  "/patients",
+  "/appointments",
+  "/lab-results",
+  "/eye-consultations",
+  "/equipment",
+  "/medical-history",
+  "/onboarding",
+  "/provider",
+];
+
+const PROVIDER_ROLES = new Set(["PROVIDER", "ADMIN", "OWNER", "DOCTOR", "NURSE", "RECEPTIONIST"]);
+
 export default withAuth(
   function middleware(req) {
     const token = req.nextauth.token;
@@ -75,8 +89,9 @@ export default withAuth(
       if (rateLimitResponse) return rateLimitResponse;
     }
 
-    // Provider-only routes
-    if (pathname.startsWith("/provider") && token?.role !== "PROVIDER" && token?.role !== "ADMIN") {
+    // Block PATIENT role from provider-only pages
+    const isProviderRoute = PROVIDER_ONLY_ROUTES.some((route) => pathname.startsWith(route));
+    if (isProviderRoute && token?.role && !PROVIDER_ROLES.has(token.role as string)) {
       return NextResponse.redirect(new URL("/dashboard", req.url));
     }
 
@@ -111,8 +126,18 @@ export const config = {
     "/records/:path*",
     "/care/:path*",
     "/family/:path*",
+    "/patients/:path*",
+    "/appointments/:path*",
+    "/lab-results/:path*",
+    "/eye-consultations/:path*",
+    "/equipment/:path*",
+    "/medical-history/:path*",
+    "/my-results/:path*",
+    "/onboarding/:path*",
     "/provider/:path*",
     "/admin/:path*",
+    "/profile/:path*",
+    "/settings/:path*",
     "/api/((?!auth|shared).*)/:path*",
   ],
 };

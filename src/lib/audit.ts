@@ -48,7 +48,9 @@ type AuditAction =
   | "PREDICT_EQUIPMENT_FAILURE"
   | "ACKNOWLEDGE_ALERT"
   | "RESOLVE_ALERT"
-  | "DISMISS_ALERT";
+  | "DISMISS_ALERT"
+  | "EMAIL_VERIFIED"
+  | "ORG_SWITCHED";
 
 interface AuditParams {
   userId?: string;
