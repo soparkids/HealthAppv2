@@ -54,7 +54,7 @@ export default function CreateOrgPage() {
         body: JSON.stringify({ name, slug }),
       });
       refetch();
-      window.location.href = "/settings";
+      window.location.href = "/onboarding";
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
