@@ -186,7 +186,7 @@ async function interpretWithGoogle(req: InterpretationRequest): Promise<Interpre
       };
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));
-      console.error(`Google model ${model} failed:`, lastError.message);
+      // console.error(`Google model ${model} failed:`, lastError.message);
     }
   }
 
@@ -263,7 +263,7 @@ export async function interpretLabResult(
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       errors.push({ provider, error: errorMsg });
-      console.error(`AI provider ${provider} failed:`, errorMsg);
+      // console.error(`AI provider ${provider} failed:`, errorMsg);
       // Continue to next provider
     }
   }

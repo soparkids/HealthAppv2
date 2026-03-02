@@ -175,7 +175,7 @@ export async function POST(
     });
 
     const errorMsg = error instanceof Error ? error.message : "An unexpected error occurred";
-    console.error("AI interpretation failed:", errorMsg);
+    // console.error("AI interpretation failed:", errorMsg);
     return NextResponse.json(
       {
         error: "Interpretation failed",

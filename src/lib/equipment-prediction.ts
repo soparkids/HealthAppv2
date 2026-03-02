@@ -246,7 +246,7 @@ async function predictWithGoogle(req: PredictionRequest): Promise<PredictionResu
       };
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));
-      console.error(`Google model ${model} failed:`, lastError.message);
+      // console.error(`Google model ${model} failed:`, lastError.message);
     }
   }
 
@@ -308,7 +308,7 @@ export async function predictEquipmentFailure(
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       errors.push({ provider, error: errorMsg });
-      console.error(`AI provider ${provider} failed for prediction:`, errorMsg);
+      // console.error(`AI provider ${provider} failed for prediction:`, errorMsg);
     }
   }
 

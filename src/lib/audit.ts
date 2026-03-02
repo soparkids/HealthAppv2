@@ -77,7 +77,7 @@ export async function logAudit(params: AuditParams): Promise<void> {
     });
   } catch (error) {
     // Audit logging should never break the request
-    console.error("Audit log failed:", error);
+    // console.error("Audit log failed:", error);
   }
 }
 

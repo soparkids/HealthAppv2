@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
       consentToken
     );
   } catch (emailError) {
-    console.error("Failed to send family consent email:", emailError);
+    // console.error("Failed to send family consent email:", emailError);
   }
 
   return NextResponse.json(familyMember, { status: 201 });
