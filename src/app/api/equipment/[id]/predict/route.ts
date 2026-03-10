@@ -193,7 +193,7 @@ export async function POST(
     });
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : "An unexpected error occurred";
-    console.error("Equipment prediction failed:", errorMsg);
+    // console.error("Equipment prediction failed:", errorMsg);
     return NextResponse.json(
       {
         error: "Prediction failed",

@@ -45,7 +45,7 @@ export async function GET(
       highlightedTerms: terms,
     });
   } catch (error) {
-    console.error("Failed to load report:", error);
+    // console.error("Failed to load report:", error);
     return NextResponse.json(
       { error: "Failed to load report" },
       { status: 500 }
