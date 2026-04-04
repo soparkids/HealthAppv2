@@ -4,6 +4,42 @@ import { prisma } from "@/lib/prisma";
 import { addMemberSchema } from "@/lib/validations/organization";
 import { logAudit, getClientIp } from "@/lib/audit";
 
+// GET: List all members of the organization
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+
+  const headers = new Headers(request.headers);
+  headers.set("x-organization-id", id);
+  const modifiedRequest = new Request(request.url, {
+    headers,
+    method: request.method,
+  });
+
+  const auth = await withOrgAuth(modifiedRequest);
+  if (auth instanceof NextResponse) return auth;
+
+  const members = await prisma.organizationMember.findMany({
+    where: { organizationId: id },
+    include: {
+      user: { select: { id: true, name: true, email: true, avatar: true } },
+    },
+    orderBy: { createdAt: "asc" },
+  });
+
+  return NextResponse.json({
+    members: members.map((m) => ({
+      id: m.id,
+      email: m.user.email,
+      name: m.user.name,
+      role: m.role,
+      joinedAt: m.createdAt.toISOString(),
+    })),
+  });
+}
+
 // POST: Add a member to the organization (OWNER/ADMIN only)
 export async function POST(
   request: Request,
