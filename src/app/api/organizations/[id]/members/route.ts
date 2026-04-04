@@ -9,35 +9,43 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
+  try {
+    const { id } = await params;
 
-  const headers = new Headers(request.headers);
-  headers.set("x-organization-id", id);
-  const modifiedRequest = new Request(request.url, {
-    headers,
-    method: request.method,
-  });
+    const headers = new Headers(request.headers);
+    headers.set("x-organization-id", id);
+    const modifiedRequest = new Request(request.url, {
+      headers,
+      method: request.method,
+    });
 
-  const auth = await withOrgAuth(modifiedRequest);
-  if (auth instanceof NextResponse) return auth;
+    const auth = await withOrgAuth(modifiedRequest);
+    if (auth instanceof NextResponse) return auth;
 
-  const members = await prisma.organizationMember.findMany({
-    where: { organizationId: id },
-    include: {
-      user: { select: { id: true, name: true, email: true, avatar: true } },
-    },
-    orderBy: { createdAt: "asc" },
-  });
+    const members = await prisma.organizationMember.findMany({
+      where: { organizationId: id },
+      include: {
+        user: { select: { id: true, name: true, email: true, avatar: true } },
+      },
+      orderBy: { createdAt: "asc" },
+    });
 
-  return NextResponse.json({
-    members: members.map((m) => ({
-      id: m.id,
-      email: m.user.email,
-      name: m.user.name,
-      role: m.role,
-      joinedAt: m.createdAt.toISOString(),
-    })),
-  });
+    return NextResponse.json({
+      members: members.map((m) => ({
+        id: m.id,
+        email: m.user.email,
+        name: m.user.name,
+        role: m.role,
+        joinedAt: m.createdAt.toISOString(),
+      })),
+    });
+  } catch (error) {
+    console.error("GET /organizations/[id]/members error:", error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Internal server error" },
+      { status: 500 }
+    );
+  }
 }
 
 // POST: Add a member to the organization (OWNER/ADMIN only)
@@ -45,68 +53,77 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
+  try {
+    const { id } = await params;
 
-  // Read body first before consuming the stream
-  const body = await request.json();
+    // Read body first before consuming the stream
+    const body = await request.json();
 
-  const headers = new Headers(request.headers);
-  headers.set("x-organization-id", id);
-  const modifiedRequest = new Request(request.url, {
-    headers,
-    method: request.method,
-    body: JSON.stringify(body),
-  });
+    const headers = new Headers(request.headers);
+    headers.set("x-organization-id", id);
+    const modifiedRequest = new Request(request.url, {
+      headers,
+      method: request.method,
+      body: JSON.stringify(body),
+    });
 
-  const auth = await withOrgAuth(modifiedRequest, ["OWNER", "ADMIN"]);
-  if (auth instanceof NextResponse) return auth;
-  const parsed = addMemberSchema.safeParse(body);
-  if (!parsed.success) {
+    const auth = await withOrgAuth(modifiedRequest, ["OWNER", "ADMIN"]);
+    if (auth instanceof NextResponse) return auth;
+
+    const parsed = addMemberSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Validation failed", details: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
+
+    const { email, role } = parsed.data;
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      return NextResponse.json(
+        { error: "No user found with this email. They must register first." },
+        { status: 404 }
+      );
+    }
+
+    const existingMembership = await prisma.organizationMember.findUnique({
+      where: { userId_organizationId: { userId: user.id, organizationId: id } },
+    });
+    if (existingMembership) {
+      return NextResponse.json(
+        { error: "User is already a member of this organization" },
+        { status: 409 }
+      );
+    }
+
+    const membership = await prisma.organizationMember.create({
+      data: { userId: user.id, organizationId: id, role },
+      include: {
+        user: { select: { id: true, name: true, email: true, avatar: true } },
+      },
+    });
+
+    await logAudit({
+      userId: auth.userId,
+      organizationId: id,
+      action: "ADD_ORG_MEMBER",
+      entityType: "organizationMember",
+      entityId: membership.id,
+      details: `Added ${email} as ${role}`,
+      ipAddress: getClientIp(request),
+    });
+
     return NextResponse.json(
-      { error: "Validation failed", details: parsed.error.flatten() },
-      { status: 400 }
+      { id: membership.id, user: membership.user, role: membership.role },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error("POST /organizations/[id]/members error:", error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Internal server error" },
+      { status: 500 }
     );
   }
-
-  const { email, role } = parsed.data;
-
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (!user) {
-    return NextResponse.json(
-      { error: "No user found with this email. They must register first." },
-      { status: 404 }
-    );
-  }
-
-  const existingMembership = await prisma.organizationMember.findUnique({
-    where: { userId_organizationId: { userId: user.id, organizationId: id } },
-  });
-  if (existingMembership) {
-    return NextResponse.json(
-      { error: "User is already a member of this organization" },
-      { status: 409 }
-    );
-  }
-
-  const membership = await prisma.organizationMember.create({
-    data: { userId: user.id, organizationId: id, role },
-    include: {
-      user: { select: { id: true, name: true, email: true, avatar: true } },
-    },
-  });
-
-  await logAudit({
-    userId: auth.userId,
-    organizationId: id,
-    action: "ADD_ORG_MEMBER",
-    entityType: "organizationMember",
-    entityId: membership.id,
-    details: `Added ${email} as ${role}`,
-    ipAddress: getClientIp(request),
-  });
-
-  return NextResponse.json(
-    { id: membership.id, user: membership.user, role: membership.role },
-    { status: 201 }
-  );
 }
