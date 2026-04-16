@@ -1,6 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 import {
   FileText,
   Clock,
@@ -10,6 +11,7 @@ import {
   Eye,
   ArrowRight,
   Calendar,
+  TestTube,
 } from "lucide-react";
 import Card, { CardBody, CardHeader } from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
@@ -51,25 +53,12 @@ function PatientDashboard({ userName }: { userName: string }) {
 
   const statCards = [
     {
-      label: "Total Records",
+      label: "Medical Records",
       value: stats.totalRecords,
       icon: FileText,
       color: "text-primary",
       bg: "bg-primary-light",
-    },
-    {
-      label: "Pending Follow-ups",
-      value: stats.pendingFollowUps,
-      icon: Clock,
-      color: "text-warning",
-      bg: "bg-warning-light",
-    },
-    {
-      label: "Shared Records",
-      value: stats.sharedRecords,
-      icon: Share2,
-      color: "text-accent",
-      bg: "bg-accent-light",
+      href: "/records",
     },
     {
       label: "Family Members",
@@ -77,6 +66,23 @@ function PatientDashboard({ userName }: { userName: string }) {
       icon: Users,
       color: "text-success",
       bg: "bg-success-light",
+      href: "/family",
+    },
+    {
+      label: "Shared Records",
+      value: stats.sharedRecords,
+      icon: Share2,
+      color: "text-accent",
+      bg: "bg-accent-light",
+      href: "/shared-records",
+    },
+    {
+      label: "Follow-ups",
+      value: stats.pendingFollowUps,
+      icon: Clock,
+      color: "text-warning",
+      bg: "bg-warning-light",
+      href: "/care",
     },
   ];
 
@@ -86,7 +92,7 @@ function PatientDashboard({ userName }: { userName: string }) {
       <div className="bg-gradient-to-r from-primary to-accent rounded-xl p-6 text-white">
         <h1 className="text-2xl font-bold">Welcome back, {userName}</h1>
         <p className="mt-1 text-white/80">
-          Here is an overview of your health records and upcoming appointments.
+          Medical records, lab results (with complimentary AI help), family, sharing, and follow-ups.
         </p>
         <div className="flex flex-wrap gap-3 mt-4">
           <Button
@@ -101,10 +107,20 @@ function PatientDashboard({ userName }: { userName: string }) {
           <Button
             variant="outline"
             size="sm"
+            icon={<TestTube className="h-4 w-4" />}
+            className="border-white/30 text-white hover:bg-white/10 hover:text-white"
+            onClick={() => (window.location.href = "/my-results")}
+          >
+            Lab results
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             icon={<Share2 className="h-4 w-4" />}
             className="border-white/30 text-white hover:bg-white/10 hover:text-white"
+            onClick={() => (window.location.href = "/shared-records")}
           >
-            Share
+            Shared records
           </Button>
           <Button
             variant="outline"
@@ -123,23 +139,25 @@ function PatientDashboard({ userName }: { userName: string }) {
         {statCards.map((stat) => {
           const Icon = stat.icon;
           return (
-            <Card key={stat.label}>
-              <CardBody className="flex items-center gap-3 sm:gap-4">
-                <div className={`rounded-lg p-2.5 sm:p-3 ${stat.bg} shrink-0`}>
-                  <Icon className={`h-5 w-5 sm:h-6 sm:w-6 ${stat.color}`} />
-                </div>
-                <div className="min-w-0">
-                  {statsLoading ? (
-                    <Spinner size="sm" />
-                  ) : (
-                    <p className="text-xl sm:text-2xl font-bold text-gray-900">
-                      {stat.value}
-                    </p>
-                  )}
-                  <p className="text-xs sm:text-sm text-gray-500 truncate">{stat.label}</p>
-                </div>
-              </CardBody>
-            </Card>
+            <Link key={stat.label} href={stat.href} className="block">
+              <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
+                <CardBody className="flex items-center gap-3 sm:gap-4">
+                  <div className={`rounded-lg p-2.5 sm:p-3 ${stat.bg} shrink-0`}>
+                    <Icon className={`h-5 w-5 sm:h-6 sm:w-6 ${stat.color}`} />
+                  </div>
+                  <div className="min-w-0">
+                    {statsLoading ? (
+                      <Spinner size="sm" />
+                    ) : (
+                      <p className="text-xl sm:text-2xl font-bold text-gray-900">
+                        {stat.value}
+                      </p>
+                    )}
+                    <p className="text-xs sm:text-sm text-gray-500 truncate">{stat.label}</p>
+                  </div>
+                </CardBody>
+              </Card>
+            </Link>
           );
         })}
       </div>

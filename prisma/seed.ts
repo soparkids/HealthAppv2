@@ -1,5 +1,9 @@
-import "dotenv/config";
+import { config as loadEnv } from "dotenv";
+import { resolve } from "path";
 import { PrismaClient } from "../src/generated/prisma/client";
+
+loadEnv({ path: resolve(process.cwd(), ".env") });
+loadEnv({ path: resolve(process.cwd(), ".env.local") });
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 import bcrypt from "bcryptjs";
@@ -370,42 +374,42 @@ async function main() {
     },
   });
 
-  // Create notifications for Sarah
+  // Create notifications for Sarah (types must match NotificationType enum)
   await prisma.notification.createMany({
     data: [
       {
         userId: sarah.id,
         title: "New Report Available",
         message: "Your Chest X-Ray report is now available to view.",
-        type: "report",
+        type: "INTERPRETATION_COMPLETE",
         read: false,
       },
       {
         userId: sarah.id,
         title: "Record Shared",
         message: "You shared your Brain MRI with Dr. Rodriguez.",
-        type: "share",
+        type: "RECORD_SHARED",
         read: true,
       },
       {
         userId: sarah.id,
         title: "Follow-up Reminder",
         message: "Your MRI follow-up consultation with Dr. Rodriguez is coming up on Feb 18.",
-        type: "reminder",
+        type: "APPOINTMENT_REMINDER",
         read: false,
       },
       {
         userId: sarah.id,
         title: "Family Member Added",
         message: "Marcus Johnson has been added as a family member.",
-        type: "family",
+        type: "MEMBER_ADDED",
         read: true,
       },
       {
         userId: sarah.id,
         title: "New Report Available",
         message: "Your Lumbar Spine MRI report is now available to view.",
-        type: "report",
+        type: "INTERPRETATION_COMPLETE",
         read: false,
       },
     ],

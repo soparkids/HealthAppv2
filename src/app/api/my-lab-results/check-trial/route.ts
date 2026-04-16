@@ -2,10 +2,14 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import {
+  PATIENT_FREE_AI_LAB_INTERPRETATIONS,
+  freeAiInterpretationsRemaining,
+} from "@/lib/patient-lab-trial";
 
 /**
  * GET /api/my-lab-results/check-trial
- * Check if the current user has a free trial available.
+ * Patient complimentary AI lab interpretations (3 per account).
  */
 export async function GET() {
   try {
@@ -16,12 +20,19 @@ export async function GET() {
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { freeTrialUsed: true },
+      select: { freeAiInterpretationsUsed: true },
     });
 
+    const used = user?.freeAiInterpretationsUsed ?? 0;
+    const remaining = freeAiInterpretationsRemaining(used);
+
     return NextResponse.json({
-      freeTrialUsed: user?.freeTrialUsed ?? false,
-      freeTrialAvailable: !(user?.freeTrialUsed ?? false),
+      freeAiInterpretationsUsed: used,
+      freeAiInterpretationsRemaining: remaining,
+      freeInterpretationAvailable: remaining > 0,
+      /** @deprecated use freeInterpretationAvailable */
+      freeTrialAvailable: remaining > 0,
+      limit: PATIENT_FREE_AI_LAB_INTERPRETATIONS,
     });
   } catch (error) {
     console.error("Check free trial error:", error);

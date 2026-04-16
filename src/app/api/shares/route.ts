@@ -18,6 +18,9 @@ export async function GET(request: NextRequest) {
   const shares = await prisma.sharedRecord.findMany({
     where,
     orderBy: { createdAt: "desc" },
+    include: {
+      medicalRecord: { select: { id: true, title: true, type: true } },
+    },
   });
 
   return NextResponse.json(shares);

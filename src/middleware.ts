@@ -126,6 +126,7 @@ export const config = {
     "/records/:path*",
     "/care/:path*",
     "/family/:path*",
+    "/shared-records/:path*",
     "/patients/:path*",
     "/appointments/:path*",
     "/lab-results/:path*",

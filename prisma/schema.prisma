@@ -68,7 +68,8 @@ model User {
   emailVerified         Boolean   @default(false)
   emailVerificationToken String?  @unique
   emailVerificationExpiry DateTime?
-  freeTrialUsed   Boolean   @default(false) // One-time free AI interpretation trial
+  /// Patient free AI lab interpretations used (max 3; see PATIENT_FREE_AI_LAB_INTERPRETATIONS)
+  freeAiInterpretationsUsed Int @default(0)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 

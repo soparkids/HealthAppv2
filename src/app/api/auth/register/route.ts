@@ -89,10 +89,25 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ message, user }, { status: 201 });
   } catch (err) {
-    // console.error("Registration error:", err);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    console.error("Registration error:", err);
+
+    const isUniqueViolation =
+      typeof err === "object" &&
+      err !== null &&
+      "code" in err &&
+      (err as { code: string }).code === "P2002";
+    if (isUniqueViolation) {
+      return NextResponse.json(
+        { error: "An account with this email already exists" },
+        { status: 409 }
+      );
+    }
+
+    const devDetail =
+      process.env.NODE_ENV === "development" && err instanceof Error
+        ? err.message
+        : "Internal server error";
+
+    return NextResponse.json({ error: devDetail }, { status: 500 });
   }
 }

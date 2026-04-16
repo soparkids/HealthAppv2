@@ -2,14 +2,16 @@
 
 import Link from "next/link";
 import {
-  Calendar,
   UserPlus,
   AlertTriangle,
-  TestTube,
   Users,
   ArrowRight,
   Wrench,
   Activity,
+  Eye,
+  Building2,
+  Calendar,
+  TestTube,
 } from "lucide-react";
 import Card, { CardBody, CardHeader } from "@/components/ui/Card";
 import Spinner from "@/components/ui/Spinner";
@@ -22,20 +24,36 @@ export default function ProviderDashboard({ userName }: { userName: string }) {
 
   const statCards = [
     {
-      label: "Today's Appointments",
-      value: stats.todayAppointments,
+      label: "Patient Management",
+      value: stats.totalPatients,
+      icon: Users,
+      color: "text-primary",
+      bg: "bg-primary-light",
+      href: "/patients",
+    },
+    {
+      label: "Appointments",
+      value: stats.totalAppointments,
       icon: Calendar,
       color: "text-primary",
       bg: "bg-primary-light",
       href: "/appointments",
     },
     {
-      label: "Total Patients",
-      value: stats.totalPatients,
-      icon: Users,
+      label: "Lab Results",
+      value: stats.totalLabResults,
+      icon: TestTube,
       color: "text-accent",
       bg: "bg-accent-light",
-      href: "/patients",
+      href: "/lab-results",
+    },
+    {
+      label: "Eye Consultations",
+      value: stats.eyeConsultations,
+      icon: Eye,
+      color: "text-accent",
+      bg: "bg-accent-light",
+      href: "/eye-consultations",
     },
     {
       label: "Equipment Alerts",
@@ -46,20 +64,23 @@ export default function ProviderDashboard({ userName }: { userName: string }) {
       href: "/equipment/alerts",
     },
     {
-      label: "Lab Results",
-      value: stats.pendingLabResults,
-      icon: TestTube,
+      label: "Organization",
+      value: "—",
+      icon: Building2,
       color: "text-warning",
       bg: "bg-warning-light",
-      href: "/lab-results",
+      href: "/settings",
+      hideValue: true,
     },
   ];
 
   const quickActions = [
-    { label: "New Patient", icon: UserPlus, href: "/patients/new" },
-    { label: "New Appointment", icon: Calendar, href: "/appointments/new" },
-    { label: "Add Lab Result", icon: TestTube, href: "/lab-results/new" },
-    { label: "Register Equipment", icon: Wrench, href: "/equipment/new" },
+    { label: "Book appointment", icon: Calendar, href: "/appointments/new" },
+    { label: "Add lab result", icon: TestTube, href: "/lab-results/new" },
+    { label: "New patient", icon: UserPlus, href: "/patients/new" },
+    { label: "Eye consultation", icon: Eye, href: "/eye-consultations/new" },
+    { label: "Register equipment", icon: Wrench, href: "/equipment/new" },
+    { label: "Org settings", icon: Building2, href: "/settings" },
   ];
 
   return (
@@ -74,6 +95,9 @@ export default function ProviderDashboard({ userName }: { userName: string }) {
                 {activeOrg.name} &middot; {activeOrg.role}
               </p>
             )}
+            <p className="mt-2 text-sm text-white/75 max-w-xl">
+              Book and manage appointments, add lab results, and run your clinic from one place.
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <Activity className="h-5 w-5 text-white/60" />
@@ -90,9 +114,10 @@ export default function ProviderDashboard({ userName }: { userName: string }) {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
         {statCards.map((stat) => {
           const Icon = stat.icon;
+          const hideValue = "hideValue" in stat && stat.hideValue;
           return (
             <Link key={stat.label} href={stat.href}>
               <Card className="hover:shadow-md transition-shadow cursor-pointer">
@@ -103,6 +128,10 @@ export default function ProviderDashboard({ userName }: { userName: string }) {
                   <div className="min-w-0">
                     {loading ? (
                       <Spinner size="sm" />
+                    ) : hideValue ? (
+                      <p className="text-sm font-semibold text-gray-900 truncate">
+                        {activeOrg?.name || "Manage"}
+                      </p>
                     ) : (
                       <p className="text-xl sm:text-2xl font-bold text-gray-900">
                         {stat.value}
@@ -123,7 +152,7 @@ export default function ProviderDashboard({ userName }: { userName: string }) {
           <h2 className="text-lg font-semibold text-gray-900">Quick Actions</h2>
         </CardHeader>
         <CardBody>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {quickActions.map((action) => {
               const Icon = action.icon;
               return (

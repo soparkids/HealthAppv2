@@ -4,6 +4,9 @@ FROM node:20-alpine AS base
 FROM base AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
+# Prisma postinstall runs during npm ci; copy schema/config first.
+COPY prisma ./prisma
+COPY prisma.config.ts ./prisma.config.ts
 RUN npm ci
 
 # --- Builder ---
@@ -16,7 +19,7 @@ ENV DATABASE_URL="postgresql://postgres:postgres@db:5432/healthapp"
 ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN npx prisma generate
-RUN npm run build
+RUN npx next build
 
 # --- Runner ---
 FROM base AS runner
@@ -34,7 +37,6 @@ COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder /app/src/generated ./src/generated
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 

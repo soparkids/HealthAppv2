@@ -68,10 +68,12 @@ export async function PUT(request: Request) {
     });
 
     return NextResponse.json(user);
-  } catch {
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+  } catch (err) {
+    console.error("Profile update error:", err);
+    const message =
+      process.env.NODE_ENV === "development" && err instanceof Error
+        ? err.message
+        : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

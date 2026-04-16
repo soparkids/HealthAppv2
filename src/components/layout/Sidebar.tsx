@@ -11,16 +11,17 @@ import {
   Users,
   Activity,
   UserPlus,
-  Calendar,
-  TestTube,
   Eye,
   Settings,
   Wrench,
   X,
-  ClipboardList,
   ChevronDown,
   Check,
   Building2,
+  Share2,
+  Rocket,
+  TestTube,
+  Calendar,
   type LucideIcon,
 } from "lucide-react";
 import { useSidebar } from "./SidebarContext";
@@ -29,23 +30,41 @@ interface NavItem {
   href: string;
   label: string;
   icon: LucideIcon;
-  providerOnly?: boolean;
-  patientOnly?: boolean;
 }
 
-const navItems: NavItem[] = [
+/** Clinic / provider workspace (multi-tenant org) */
+const CLINIC_NAV: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/patients", label: "Patients", icon: UserPlus, providerOnly: true },
-  { href: "/appointments", label: "Appointments", icon: Calendar, providerOnly: true },
-  { href: "/lab-results", label: "Lab Results", icon: TestTube, providerOnly: true },
-  { href: "/eye-consultations", label: "Eye Consult", icon: Eye, providerOnly: true },
-  { href: "/equipment", label: "Equipment", icon: Wrench, providerOnly: true },
-  { href: "/my-results", label: "My Results", icon: ClipboardList, patientOnly: true },
-  { href: "/records", label: "Records", icon: FolderOpen },
-  { href: "/care", label: "Care", icon: HeartPulse },
-  { href: "/family", label: "Family", icon: Users },
+  { href: "/patients", label: "Patient Management", icon: UserPlus },
+  { href: "/appointments", label: "Appointments", icon: Calendar },
+  { href: "/lab-results", label: "Lab Results", icon: TestTube },
+  { href: "/eye-consultations", label: "Eye Consultations", icon: Eye },
+  { href: "/equipment", label: "Equipment", icon: Wrench },
+  { href: "/settings", label: "Organization", icon: Building2 },
+];
+
+/** Patient — personal health only */
+const PATIENT_NAV: NavItem[] = [
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/records", label: "Medical Records", icon: FolderOpen },
+  { href: "/my-results", label: "Lab Results", icon: TestTube },
+  { href: "/family", label: "Family Members", icon: Users },
+  { href: "/shared-records", label: "Shared Records", icon: Share2 },
+  { href: "/care", label: "Follow-ups", icon: HeartPulse },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
+
+/** Provider without org, admin, etc. */
+function fallbackNav(role: string | undefined): NavItem[] {
+  const base: NavItem[] = [
+    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  ];
+  if (role === "PROVIDER") {
+    base.push({ href: "/onboarding", label: "Join a clinic", icon: Rocket });
+  }
+  base.push({ href: "/settings", label: "Settings", icon: Settings });
+  return base;
+}
 
 interface OrgOption {
   id: string;
@@ -148,18 +167,21 @@ function OrgSwitcher() {
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const isProvider = session?.user?.role === "PROVIDER";
+  const role = session?.user?.role;
   const hasOrg = !!session?.user?.activeOrganizationId;
 
-  const filteredItems = navItems.filter((item) => {
-    if (item.providerOnly && !(isProvider && hasOrg)) return false;
-    if (item.patientOnly && isProvider) return false;
-    return true;
-  });
+  let items: NavItem[];
+  if (role === "PROVIDER" && hasOrg) {
+    items = CLINIC_NAV;
+  } else if (role === "PATIENT") {
+    items = PATIENT_NAV;
+  } else {
+    items = fallbackNav(role);
+  }
 
   return (
     <nav className="space-y-1">
-      {filteredItems.map((item) => {
+      {items.map((item) => {
         const isActive =
           pathname === item.href || pathname?.startsWith(item.href + "/");
         const Icon = item.icon;
@@ -204,13 +226,11 @@ export default function Sidebar() {
       {/* Mobile sidebar overlay */}
       {isOpen && (
         <div className="fixed inset-0 z-40 lg:hidden">
-          {/* Backdrop */}
           <div
             className="fixed inset-0 bg-black/50"
             onClick={close}
             aria-hidden="true"
           />
-          {/* Slide-in panel */}
           <aside
             className="fixed top-0 left-0 w-72 h-full bg-white shadow-xl z-50 overflow-y-auto"
             role="dialog"

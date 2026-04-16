@@ -5,11 +5,15 @@ import { prisma } from "@/lib/prisma";
 import { decrypt, encrypt } from "@/lib/encryption";
 import { interpretLabResult, getConfiguredProviders } from "@/lib/ai-providers";
 import { logAudit, getClientIp } from "@/lib/audit";
+import {
+  PATIENT_FREE_AI_LAB_INTERPRETATIONS,
+  freeAiInterpretationsRemaining,
+} from "@/lib/patient-lab-trial";
 
 /**
  * POST /api/my-lab-results/[id]/interpret
- * One-time free AI interpretation for patients.
- * No org membership required - uses the patient's free trial.
+ * Complimentary AI lab interpretations for patients (3 per account).
+ * No org membership required.
  */
 export async function POST(
   request: Request,
@@ -24,21 +28,23 @@ export async function POST(
     const { id: labResultId } = await params;
     const userId = session.user.id;
 
-    // Check if user has already used their free trial
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { freeTrialUsed: true },
+      select: { freeAiInterpretationsUsed: true },
     });
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    if (user.freeTrialUsed) {
+    const usedBefore = user.freeAiInterpretationsUsed ?? 0;
+    if (usedBefore >= PATIENT_FREE_AI_LAB_INTERPRETATIONS) {
       return NextResponse.json(
         {
-          error: "Free trial already used",
-          message: "You have already used your one-time free AI interpretation. Contact your healthcare provider for additional interpretations.",
+          error: "No free interpretations remaining",
+          message: `You have used all ${PATIENT_FREE_AI_LAB_INTERPRETATIONS} complimentary AI interpretations. Contact your healthcare provider for additional interpretations.`,
+          freeAiInterpretationsUsed: usedBefore,
+          freeAiInterpretationsRemaining: 0,
         },
         { status: 403 }
       );
@@ -147,11 +153,14 @@ export async function POST(
       },
     });
 
-    // Mark free trial as used
-    await prisma.user.update({
+    const updatedUser = await prisma.user.update({
       where: { id: userId },
-      data: { freeTrialUsed: true },
+      data: { freeAiInterpretationsUsed: { increment: 1 } },
+      select: { freeAiInterpretationsUsed: true },
     });
+
+    const usedAfter = updatedUser.freeAiInterpretationsUsed;
+    const remainingAfter = freeAiInterpretationsRemaining(usedAfter);
 
     // Audit log
     await logAudit({
@@ -160,7 +169,7 @@ export async function POST(
       action: "PATIENT_FREE_TRIAL_INTERPRET",
       entityType: "lab_result",
       entityId: labResultId,
-      details: `Patient used free trial AI interpretation — ${result.provider}/${result.model} — risk: ${result.riskLevel}`,
+      details: `Patient used complimentary AI lab interpretation (${usedAfter}/${PATIENT_FREE_AI_LAB_INTERPRETATIONS}) — ${result.provider}/${result.model} — risk: ${result.riskLevel}`,
       ipAddress: getClientIp(request),
     });
 
@@ -177,8 +186,12 @@ export async function POST(
         recommendations: result.recommendations,
         createdAt: updatedInterpretation.createdAt,
       },
-      freeTrialUsed: true,
-      message: "This was your one-time free AI interpretation.",
+      freeAiInterpretationsUsed: usedAfter,
+      freeAiInterpretationsRemaining: remainingAfter,
+      message:
+        remainingAfter > 0
+          ? `You have ${remainingAfter} complimentary AI interpretation${remainingAfter === 1 ? "" : "s"} remaining.`
+          : "You have used all complimentary AI interpretations for your account.",
     });
   } catch (error) {
     console.error("Patient interpretation error:", error);
@@ -202,12 +215,18 @@ export async function GET() {
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { freeTrialUsed: true },
+      select: { freeAiInterpretationsUsed: true },
     });
 
+    const used = user?.freeAiInterpretationsUsed ?? 0;
+    const remaining = freeAiInterpretationsRemaining(used);
+
     return NextResponse.json({
-      freeTrialUsed: user?.freeTrialUsed ?? false,
-      freeTrialAvailable: !(user?.freeTrialUsed ?? false),
+      freeAiInterpretationsUsed: used,
+      freeAiInterpretationsRemaining: remaining,
+      freeInterpretationAvailable: remaining > 0,
+      freeTrialAvailable: remaining > 0,
+      limit: PATIENT_FREE_AI_LAB_INTERPRETATIONS,
     });
   } catch (error) {
     console.error("Check free trial error:", error);

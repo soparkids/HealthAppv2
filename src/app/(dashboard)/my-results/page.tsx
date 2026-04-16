@@ -8,6 +8,7 @@ import Spinner from "@/components/ui/Spinner";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import { apiFetch } from "@/lib/api";
+import { PATIENT_FREE_AI_LAB_INTERPRETATIONS } from "@/lib/patient-lab-trial";
 
 interface LabResult {
   id: string;
@@ -56,7 +57,7 @@ export default function MyResultsPage() {
   const [results, setResults] = useState<LabResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [freeTrialAvailable, setFreeTrialAvailable] = useState(false);
+  const [freeInterpretationsRemaining, setFreeInterpretationsRemaining] = useState(0);
   const [interpreting, setInterpreting] = useState<string | null>(null);
   const [interpretationModal, setInterpretationModal] = useState<{
     open: boolean;
@@ -71,10 +72,11 @@ export default function MyResultsPage() {
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
 
-    // Check free trial status
-    apiFetch<{ freeTrialAvailable: boolean }>("/my-lab-results/check-trial")
-      .then((data) => setFreeTrialAvailable(data.freeTrialAvailable))
-      .catch(() => setFreeTrialAvailable(false));
+    apiFetch<{ freeAiInterpretationsRemaining?: number }>("/my-lab-results/check-trial")
+      .then((data) =>
+        setFreeInterpretationsRemaining(data.freeAiInterpretationsRemaining ?? 0)
+      )
+      .catch(() => setFreeInterpretationsRemaining(0));
   }, []);
 
   const handleInterpret = async (labResult: LabResult) => {
@@ -85,10 +87,12 @@ export default function MyResultsPage() {
     try {
       const data = await apiFetch<{
         interpretation: InterpretationResult;
-        freeTrialUsed: boolean;
+        freeAiInterpretationsRemaining?: number;
       }>(`/my-lab-results/${labResult.id}/interpret`, { method: "POST" });
 
-      setFreeTrialAvailable(false);
+      if (typeof data.freeAiInterpretationsRemaining === "number") {
+        setFreeInterpretationsRemaining(data.freeAiInterpretationsRemaining);
+      }
       setInterpretationModal({
         open: true,
         result: data.interpretation,
@@ -129,20 +133,22 @@ export default function MyResultsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">My Lab Results</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Lab Results</h1>
         <p className="text-gray-500 mt-1">
-          View lab results from hospitals you&apos;re registered with.
+          View lab results from your care team. Each account includes {PATIENT_FREE_AI_LAB_INTERPRETATIONS}{" "}
+          complimentary AI interpretations.
         </p>
       </div>
 
-      {/* Free Trial Banner */}
-      {freeTrialAvailable && (
+      {freeInterpretationsRemaining > 0 && (
         <div className="bg-gradient-to-r from-accent to-primary rounded-lg p-4 text-white flex items-center gap-3">
           <Gift className="h-6 w-6 shrink-0" />
           <div className="flex-1">
-            <p className="font-semibold">Free AI Interpretation Available!</p>
+            <p className="font-semibold">Complimentary AI interpretations</p>
             <p className="text-sm text-white/80">
-              You have one free AI-powered lab result interpretation. Select a result below to use it.
+              You have <strong>{freeInterpretationsRemaining}</strong> of {PATIENT_FREE_AI_LAB_INTERPRETATIONS}{" "}
+              free AI-powered interpretations left. Use them on results below that don&apos;t have an
+              interpretation yet.
             </p>
           </div>
         </div>
@@ -214,7 +220,7 @@ export default function MyResultsPage() {
                           <Clock className="h-3 w-3 mr-1" />
                           Awaiting Interpretation
                         </Badge>
-                        {freeTrialAvailable && (
+                        {freeInterpretationsRemaining > 0 && (
                           <Button
                             size="sm"
                             variant="primary"
@@ -223,7 +229,9 @@ export default function MyResultsPage() {
                             disabled={!!interpreting}
                             onClick={() => handleInterpret(result)}
                           >
-                            {interpreting === result.id ? "Interpreting..." : "Free Interpret"}
+                            {interpreting === result.id
+                              ? "Interpreting..."
+                              : `AI interpret (${freeInterpretationsRemaining} left)`}
                           </Button>
                         )}
                       </>
@@ -299,9 +307,8 @@ export default function MyResultsPage() {
               provider for any health concerns.
             </div>
 
-            {/* Free trial notice */}
             <div className="text-center text-xs text-gray-500">
-              This was your one-time free AI interpretation.
+              Complimentary AI interpretation — {PATIENT_FREE_AI_LAB_INTERPRETATIONS} per account max.
             </div>
 
             <div className="flex justify-end pt-2">
