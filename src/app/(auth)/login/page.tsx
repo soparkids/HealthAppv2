@@ -19,7 +19,7 @@ export default function LoginPage() {
     setLoading(true);
 
     const result = await signIn("credentials", {
-      email,
+      email: email.trim().toLowerCase(),
       password,
       redirect: false,
     });
@@ -27,7 +27,13 @@ export default function LoginPage() {
     setLoading(false);
 
     if (result?.error) {
-      setError("Invalid email or password");
+      if (result.error.includes("Too many")) {
+        setError("Too many login attempts. Try again later.");
+        return;
+      }
+      setError(
+        "We couldn't sign you in. Check your email and password. If you're using the production site, register here first or use an account that exists in that environment's database (seed data from local dev does not copy to production automatically)."
+      );
       return;
     }
 

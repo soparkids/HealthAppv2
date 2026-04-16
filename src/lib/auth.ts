@@ -8,6 +8,8 @@ import { checkRateLimit, clearRateLimit, AUTH_RATE_LIMIT } from "@/lib/rate-limi
 import { logAudit } from "@/lib/audit";
 
 export const authOptions: NextAuthOptions = {
+  /** Required on Vercel / serverless so auth works with the deployment host */
+  trustHost: true,
   session: {
     strategy: "jwt",
   },
@@ -28,7 +30,8 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        const { email, password } = parsed.data;
+        const email = parsed.data.email.trim().toLowerCase();
+        const { password } = parsed.data;
 
         const rateLimitKey = `login:${email}`;
         const rateCheck = checkRateLimit(rateLimitKey, AUTH_RATE_LIMIT);
